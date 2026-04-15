@@ -28,6 +28,9 @@ export const PublicRegistration: React.FC = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Convert empty strings to null so optional DB columns don't get bad values
+  const nullify = (val: string) => val.trim() === '' ? null : val.trim();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -37,7 +40,6 @@ export const PublicRegistration: React.FC = () => {
     }
     setSubmitting(true);
     try {
-      // Generate UUID client-side so we never need .select() after insert
       const memberId = crypto.randomUUID();
 
       const basePath = `members/${memberId}`;
@@ -55,7 +57,14 @@ export const PublicRegistration: React.FC = () => {
         .from('members')
         .insert({
           id: memberId,
-          ...form,
+          full_name: form.full_name.trim(),
+          email: form.email.trim(),
+          contact_no: form.contact_no.trim(),
+          address: form.address.trim(),
+          designation: nullify(form.designation),
+          area_district: nullify(form.area_district),
+          dob: nullify(form.dob),           // date column — must be null, not ""
+          blood_group: nullify(form.blood_group),
           photo_url: photoPath,
           aadhaar_front_url: aadhaarFrontPath,
           aadhaar_back_url: aadhaarBackPath,
