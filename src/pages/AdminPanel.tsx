@@ -14,11 +14,17 @@ export const AdminPanel: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<MemberStatus>('pending');
+  const [activeTab, setActiveTab] = useState<MemberStatus | 'create-admin'>('pending');
   const [members, setMembers] = useState<Member[]>([]);
   const [selected, setSelected] = useState<Member | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Create admin form state
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [createAdminMsg, setCreateAdminMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [createAdminBusy, setCreateAdminBusy] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -35,8 +41,8 @@ export const AdminPanel: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (admin.isAdmin) {
-      void loadMembers(activeTab);
+    if (admin.isAdmin && activeTab !== 'create-admin') {
+      void loadMembers(activeTab as MemberStatus);
     }
   }, [admin, activeTab]);
 
@@ -66,10 +72,32 @@ export const AdminPanel: React.FC = () => {
         throw new Error('This account is not an admin.');
       }
       setAdmin({ userId: data.user.id, isAdmin: true });
-      await loadMembers(activeTab);
+      await loadMembers('pending');
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message ?? 'Login failed');
+    }
+  };
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateAdminMsg(null);
+    setCreateAdminBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('create-admin-user', {
+        body: { email: newAdminEmail, password: newAdminPassword },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setCreateAdminMsg({ type: 'success', text: `Admin created: ${newAdminEmail}` });
+      setNewAdminEmail('');
+      setNewAdminPassword('');
+    } catch (err: any) {
+      setCreateAdminMsg({ type: 'error', text: err.message ?? 'Failed to create admin' });
+    } finally {
+      setCreateAdminBusy(false);
     }
   };
 
@@ -81,7 +109,7 @@ export const AdminPanel: React.FC = () => {
         body: { member_id: member.id },
       });
       if (error) throw error;
-      await loadMembers(activeTab);
+      await loadMembers(activeTab as MemberStatus);
       setSelected(null);
     } catch (err: any) {
       console.error(err);
@@ -101,7 +129,7 @@ export const AdminPanel: React.FC = () => {
         .update({ status: 'rejected', rejection_reason: reason })
         .eq('id', member.id);
       if (error) throw error;
-      await loadMembers(activeTab);
+      await loadMembers(activeTab as MemberStatus);
       setSelected(null);
     } catch (err: any) {
       console.error(err);
@@ -172,111 +200,163 @@ export const AdminPanel: React.FC = () => {
   return (
     <PageShell title="Admin Panel">
       <div className="flex justify-end mb-3">
-        <button
-          onClick={handleLogout}
-          className="text-xs text-slate-500 hover:text-red-600 underline"
-        >
+        <button onClick={handleLogout} className="text-xs text-slate-500 hover:text-red-600 underline">
           Logout
         </button>
       </div>
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
-          <div className="flex gap-2 mb-3 text-sm">
-            {(['pending', 'approved', 'rejected'] as MemberStatus[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1 rounded-full border text-xs font-medium ${
-                  activeTab === tab
-                    ? 'bg-orange-600 text-white border-orange-600'
-                    : 'bg-white text-slate-700 border-slate-300'
-                }`}
-              >
-                {tab.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <div className="border rounded-lg overflow-hidden text-xs sm:text-sm">
-            <table className="w-full">
-              <thead className="bg-slate-100">
-                <tr>
-                  <th className="px-3 py-2 text-left">Name</th>
-                  <th className="px-3 py-2 text-left">Email</th>
-                  <th className="px-3 py-2 text-left">District</th>
-                  <th className="px-3 py-2 text-left">Applied</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m) => (
-                  <tr
-                    key={m.id}
-                    className="border-t hover:bg-slate-50 cursor-pointer"
-                    onClick={() => setSelected(m)}
-                  >
-                    <td className="px-3 py-2">{m.full_name}</td>
-                    <td className="px-3 py-2">{m.email}</td>
-                    <td className="px-3 py-2">{m.area_district}</td>
-                    <td className="px-3 py-2">
-                      {m.created_at ? m.created_at.slice(0, 10) : ''}
-                    </td>
-                  </tr>
-                ))}
-                {members.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-4 text-center text-slate-500">
-                      No applications in this tab.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {errorMsg && <p className="mt-2 text-xs text-red-600">{errorMsg}</p>}
-        </div>
-        {selected && (
-          <div className="w-full md:w-80 border rounded-lg p-3 text-xs space-y-2 bg-slate-50">
-            <div className="flex justify-between items-start">
-              <h3 className="font-semibold text-sm">Application Details</h3>
-              <button className="text-xs text-slate-500" onClick={() => setSelected(null)}>Close</button>
-            </div>
-            <p className="font-semibold">{selected.full_name}</p>
-            <p>{selected.email}</p>
-            <p>Designation: {selected.designation || '-'}</p>
-            <p>Area/District: {selected.area_district || '-'}</p>
-            <p>DOB: {selected.dob || '-'}</p>
-            <p>Blood Group: {selected.blood_group || '-'}</p>
-            <p>Contact: {selected.contact_no || '-'}</p>
-            <p>Address: {selected.address || '-'}</p>
-            {selected.rejection_reason && (
-              <p>Rejection reason: {selected.rejection_reason}</p>
-            )}
-            <div className="flex gap-2 mt-2">
-              <button
-                disabled={busy || selected.status === 'approved'}
-                className="flex-1 px-2 py-1 rounded bg-green-600 text-white text-xs disabled:opacity-50"
-                onClick={() => handleApprove(selected)}
-              >
-                Approve
-              </button>
-              <button
-                disabled={busy || selected.status === 'rejected'}
-                className="flex-1 px-2 py-1 rounded bg-red-600 text-white text-xs disabled:opacity-50"
-                onClick={() => handleReject(selected)}
-              >
-                Reject
-              </button>
-            </div>
-            <div className="mt-3 space-y-2">
-              <AsyncImage label="Photo" path={selected.photo_url} getSignedUrl={getSignedUrl} />
-              <AsyncImage label="Aadhaar Front" path={selected.aadhaar_front_url} getSignedUrl={getSignedUrl} />
-              <AsyncImage label="Aadhaar Back" path={selected.aadhaar_back_url} getSignedUrl={getSignedUrl} />
-            </div>
-            <div className="mt-3 border-t pt-2">
-              <OfficialForm member={selected} />
-            </div>
-          </div>
-        )}
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4 text-sm flex-wrap">
+        {(['pending', 'approved', 'rejected'] as MemberStatus[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => { setActiveTab(tab); setSelected(null); }}
+            className={`px-3 py-1 rounded-full border text-xs font-medium ${
+              activeTab === tab
+                ? 'bg-orange-600 text-white border-orange-600'
+                : 'bg-white text-slate-700 border-slate-300'
+            }`}
+          >
+            {tab.toUpperCase()}
+          </button>
+        ))}
+        <button
+          onClick={() => { setActiveTab('create-admin'); setSelected(null); }}
+          className={`px-3 py-1 rounded-full border text-xs font-medium ${
+            activeTab === 'create-admin'
+              ? 'bg-slate-800 text-white border-slate-800'
+              : 'bg-white text-slate-700 border-slate-300'
+          }`}
+        >
+          + CREATE ADMIN
+        </button>
       </div>
+
+      {/* Create Admin Tab */}
+      {activeTab === 'create-admin' ? (
+        <div className="max-w-sm">
+          <h2 className="text-sm font-semibold mb-3">Create New Admin Account</h2>
+          <form onSubmit={handleCreateAdmin} className="space-y-3">
+            <div className="flex flex-col text-sm">
+              <label className="mb-1 font-medium">Email</label>
+              <input
+                type="email"
+                required
+                value={newAdminEmail}
+                onChange={(e) => setNewAdminEmail(e.target.value)}
+                className="rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500"
+              />
+            </div>
+            <div className="flex flex-col text-sm">
+              <label className="mb-1 font-medium">Password</label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={newAdminPassword}
+                onChange={(e) => setNewAdminPassword(e.target.value)}
+                className="rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500"
+              />
+            </div>
+            {createAdminMsg && (
+              <p className={`text-xs ${ createAdminMsg.type === 'success' ? 'text-green-600' : 'text-red-600' }`}>
+                {createAdminMsg.text}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={createAdminBusy}
+              className="px-4 py-2 rounded-md bg-slate-800 text-white text-sm font-medium hover:bg-slate-900 disabled:opacity-50"
+            >
+              {createAdminBusy ? 'Creating...' : 'Create Admin'}
+            </button>
+          </form>
+        </div>
+      ) : (
+        /* Members Table */
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="border rounded-lg overflow-hidden text-xs sm:text-sm">
+              <table className="w-full">
+                <thead className="bg-slate-100">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Name</th>
+                    <th className="px-3 py-2 text-left">Email</th>
+                    <th className="px-3 py-2 text-left">District</th>
+                    <th className="px-3 py-2 text-left">Applied</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((m) => (
+                    <tr
+                      key={m.id}
+                      className="border-t hover:bg-slate-50 cursor-pointer"
+                      onClick={() => setSelected(m)}
+                    >
+                      <td className="px-3 py-2">{m.full_name}</td>
+                      <td className="px-3 py-2">{m.email}</td>
+                      <td className="px-3 py-2">{m.area_district}</td>
+                      <td className="px-3 py-2">{m.created_at ? m.created_at.slice(0, 10) : ''}</td>
+                    </tr>
+                  ))}
+                  {members.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-4 text-center text-slate-500">
+                        No applications in this tab.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {errorMsg && <p className="mt-2 text-xs text-red-600">{errorMsg}</p>}
+          </div>
+
+          {selected && (
+            <div className="w-full md:w-80 border rounded-lg p-3 text-xs space-y-2 bg-slate-50">
+              <div className="flex justify-between items-start">
+                <h3 className="font-semibold text-sm">Application Details</h3>
+                <button className="text-xs text-slate-500" onClick={() => setSelected(null)}>Close</button>
+              </div>
+              <p className="font-semibold">{selected.full_name}</p>
+              <p>{selected.email}</p>
+              <p>Designation: {selected.designation || '-'}</p>
+              <p>Area/District: {selected.area_district || '-'}</p>
+              <p>DOB: {selected.dob || '-'}</p>
+              <p>Blood Group: {selected.blood_group || '-'}</p>
+              <p>Contact: {selected.contact_no || '-'}</p>
+              <p>Address: {selected.address || '-'}</p>
+              {selected.rejection_reason && (
+                <p>Rejection reason: {selected.rejection_reason}</p>
+              )}
+              <div className="flex gap-2 mt-2">
+                <button
+                  disabled={busy || selected.status === 'approved'}
+                  className="flex-1 px-2 py-1 rounded bg-green-600 text-white text-xs disabled:opacity-50"
+                  onClick={() => handleApprove(selected)}
+                >
+                  Approve
+                </button>
+                <button
+                  disabled={busy || selected.status === 'rejected'}
+                  className="flex-1 px-2 py-1 rounded bg-red-600 text-white text-xs disabled:opacity-50"
+                  onClick={() => handleReject(selected)}
+                >
+                  Reject
+                </button>
+              </div>
+              <div className="mt-3 space-y-2">
+                <AsyncImage label="Photo" path={selected.photo_url} getSignedUrl={getSignedUrl} />
+                <AsyncImage label="Aadhaar Front" path={selected.aadhaar_front_url} getSignedUrl={getSignedUrl} />
+                <AsyncImage label="Aadhaar Back" path={selected.aadhaar_back_url} getSignedUrl={getSignedUrl} />
+              </div>
+              <div className="mt-3 border-t pt-2">
+                <OfficialForm member={selected} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </PageShell>
   );
 };
