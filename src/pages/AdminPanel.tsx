@@ -22,16 +22,10 @@ export const AdminPanel: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const { data } = await supabase
-          .from('admins')
-          .select('id')
-          .eq('auth_id', session.user.id)
-          .maybeSingle();
-        if (data) {
+        const role = session.user.user_metadata?.role;
+        if (role === 'admin') {
           setAdmin({ userId: session.user.id, isAdmin: true });
         }
       }
@@ -64,21 +58,14 @@ export const AdminPanel: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      const user = data.user;
-      const { data: adminRow } = await supabase
-        .from('admins')
-        .select('id')
-        .eq('auth_id', user.id)
-        .maybeSingle();
-      if (!adminRow) {
-        throw new Error('This account is not an admin');
+      const role = data.user.user_metadata?.role;
+      if (role !== 'admin') {
+        await supabase.auth.signOut();
+        throw new Error('This account is not an admin.');
       }
-      setAdmin({ userId: user.id, isAdmin: true });
+      setAdmin({ userId: data.user.id, isAdmin: true });
       await loadMembers(activeTab);
     } catch (err: any) {
       console.error(err);
@@ -133,6 +120,11 @@ export const AdminPanel: React.FC = () => {
     return data.signedUrl;
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setAdmin({ userId: null, isAdmin: false });
+  };
+
   if (loading) {
     return (
       <PageShell title="Admin Panel">
@@ -179,24 +171,30 @@ export const AdminPanel: React.FC = () => {
 
   return (
     <PageShell title="Admin Panel">
+      <div className="flex justify-end mb-3">
+        <button
+          onClick={handleLogout}
+          className="text-xs text-slate-500 hover:text-red-600 underline"
+        >
+          Logout
+        </button>
+      </div>
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <div className="flex gap-2 mb-3 text-sm">
-            {(['pending', 'approved', 'rejected'] as MemberStatus[]).map(
-              (tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1 rounded-full border text-xs font-medium ${
-                    activeTab === tab
-                      ? 'bg-orange-600 text-white border-orange-600'
-                      : 'bg-white text-slate-700 border-slate-300'
-                  }`}
-                >
-                  {tab.toUpperCase()}
-                </button>
-              ),
-            )}
+            {(['pending', 'approved', 'rejected'] as MemberStatus[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 py-1 rounded-full border text-xs font-medium ${
+                  activeTab === tab
+                    ? 'bg-orange-600 text-white border-orange-600'
+                    : 'bg-white text-slate-700 border-slate-300'
+                }`}
+              >
+                {tab.toUpperCase()}
+              </button>
+            ))}
           </div>
           <div className="border rounded-lg overflow-hidden text-xs sm:text-sm">
             <table className="w-full">
@@ -225,10 +223,7 @@ export const AdminPanel: React.FC = () => {
                 ))}
                 {members.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={4}
-                      className="px-3 py-4 text-center text-slate-500"
-                    >
+                    <td colSpan={4} className="px-3 py-4 text-center text-slate-500">
                       No applications in this tab.
                     </td>
                   </tr>
@@ -236,20 +231,13 @@ export const AdminPanel: React.FC = () => {
               </tbody>
             </table>
           </div>
-          {errorMsg && (
-            <p className="mt-2 text-xs text-red-600">{errorMsg}</p>
-          )}
+          {errorMsg && <p className="mt-2 text-xs text-red-600">{errorMsg}</p>}
         </div>
         {selected && (
           <div className="w-full md:w-80 border rounded-lg p-3 text-xs space-y-2 bg-slate-50">
             <div className="flex justify-between items-start">
               <h3 className="font-semibold text-sm">Application Details</h3>
-              <button
-                className="text-xs text-slate-500"
-                onClick={() => setSelected(null)}
-              >
-                Close
-              </button>
+              <button className="text-xs text-slate-500" onClick={() => setSelected(null)}>Close</button>
             </div>
             <p className="font-semibold">{selected.full_name}</p>
             <p>{selected.email}</p>
@@ -309,9 +297,7 @@ const AsyncImage: React.FC<AsyncImageProps> = ({ label, path, getSignedUrl }) =>
       const signed = await getSignedUrl(path);
       if (!cancelled) setUrl(signed);
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [path]);
 
   if (!path) return null;
@@ -320,11 +306,7 @@ const AsyncImage: React.FC<AsyncImageProps> = ({ label, path, getSignedUrl }) =>
     <div>
       <p className="text-[0.7rem] font-medium mb-1">{label}</p>
       {url ? (
-        <img
-          src={url}
-          alt={label}
-          className="w-full h-28 object-cover rounded border"
-        />
+        <img src={url} alt={label} className="w-full h-28 object-cover rounded border" />
       ) : (
         <p className="text-[0.7rem] text-slate-500">Loading...</p>
       )}
