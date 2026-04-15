@@ -105,10 +105,13 @@ export const AdminPanel: React.FC = () => {
     setBusy(true);
     setErrorMsg(null);
     try {
-      const { error } = await supabase.functions.invoke('approve-member', {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('approve-member', {
         body: { member_id: member.id },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
-      if (error) throw error;
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
       await loadMembers(activeTab as MemberStatus);
       setSelected(null);
     } catch (err: any) {
@@ -335,7 +338,7 @@ export const AdminPanel: React.FC = () => {
                   className="flex-1 px-2 py-1 rounded bg-green-600 text-white text-xs disabled:opacity-50"
                   onClick={() => handleApprove(selected)}
                 >
-                  Approve
+                  {busy ? 'Processing...' : 'Approve'}
                 </button>
                 <button
                   disabled={busy || selected.status === 'rejected'}
