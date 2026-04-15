@@ -37,16 +37,8 @@ export const PublicRegistration: React.FC = () => {
     }
     setSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from('members')
-        .insert({
-          ...form,
-          status: 'pending',
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      const memberId = data.id as string;
+      // Generate UUID client-side so we never need .select() after insert
+      const memberId = crypto.randomUUID();
 
       const basePath = `members/${memberId}`;
       const photoPath = await uploadCompressedImage(photo, `${basePath}/photo.jpg`);
@@ -59,15 +51,18 @@ export const PublicRegistration: React.FC = () => {
         `${basePath}/aadhaar-back.jpg`,
       );
 
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('members')
-        .update({
+        .insert({
+          id: memberId,
+          ...form,
           photo_url: photoPath,
           aadhaar_front_url: aadhaarFrontPath,
           aadhaar_back_url: aadhaarBackPath,
-        })
-        .eq('id', memberId);
-      if (updateError) throw updateError;
+          status: 'pending',
+        });
+
+      if (error) throw error;
 
       setSuccessId(memberId);
     } catch (err: any) {
@@ -145,6 +140,7 @@ export const PublicRegistration: React.FC = () => {
             name="contact_no"
             value={form.contact_no}
             onChange={handleChange}
+            required
           />
         </div>
         <div>
@@ -155,6 +151,7 @@ export const PublicRegistration: React.FC = () => {
             name="address"
             value={form.address}
             onChange={handleChange}
+            required
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
             rows={3}
           />
