@@ -33,11 +33,9 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
     const el = wrapperRef.current;
     if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      const scaleX = width / FORM_W;
-      const scaleY = height / FORM_H;
-      // Use the smaller axis so form always fits — no cap, scales up on desktop too
-      setScale(Math.min(scaleX, scaleY));
+      const { width } = entry.contentRect;
+      // Scale based on width only — wrapper height is then set to scaled form height
+      setScale(width / FORM_W);
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -49,16 +47,14 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
   const approvedDate = (member.approved_at || member.created_at || '').slice(0, 10);
 
   return (
+    // Outer wrapper: width 100%, height = scaled form height so nothing clips
     <div
       ref={wrapperRef}
       style={{
         width: '100%',
-        height: '100%',
-        minHeight: `${FORM_H * 0.35}px`,
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        overflow: 'hidden',
+        height: `${FORM_H * scale}px`,
+        position: 'relative',
+        overflow: 'visible',
       }}
     >
       <div
@@ -66,11 +62,12 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           width: `${FORM_W}px`,
           height: `${FORM_H}px`,
           transform: `scale(${scale})`,
-          transformOrigin: 'top center',
-          flexShrink: 0,
+          transformOrigin: 'top left',
+          position: 'absolute',
+          top: 0,
+          left: 0,
           background: 'white',
           boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-          position: 'relative',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -213,7 +210,8 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           </div>
         </div>
 
-        <div style={{ background: '#e06020', color: 'white', textAlign: 'center', padding: '16px 0', marginTop: 'auto', position: 'relative', zIndex: 1 }}>
+        {/* Footer — fully visible, never clipped */}
+        <div style={{ background: '#e06020', color: 'white', textAlign: 'center', padding: '16px 0', marginTop: 'auto', flexShrink: 0 }}>
           <p style={{ margin: '4px 0', fontSize: 18, fontWeight: 'bold', letterSpacing: 1.2 }}>NATION FIRST &bull; MODI FOREVER &bull;</p>
           <p style={{ margin: '4px 0', fontSize: 18, fontWeight: 'bold', letterSpacing: 1.2 }}>राष्ट्र प्रथम &bull; मोदी सदैव &bull;</p>
         </div>
