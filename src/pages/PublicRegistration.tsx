@@ -78,16 +78,12 @@ export const PublicRegistration: React.FC = () => {
       const memberId = crypto.randomUUID();
       const basePath = `members/${memberId}`;
 
-      const photoPath = await uploadCompressedImage(photo, `${basePath}/photo.${photo.name.split('.').pop()}`);
+      // All 4 files go to the same 'member-files' bucket
+      const photoPath      = await uploadCompressedImage(photo,        `${basePath}/photo.${photo.name.split('.').pop()}`);
       const aadhaarFrontPath = await uploadCompressedImage(aadhaarFront, `${basePath}/aadhaar-front.${aadhaarFront.name.split('.').pop()}`);
-      const aadhaarBackPath = await uploadCompressedImage(aadhaarBack, `${basePath}/aadhaar-back.${aadhaarBack.name.split('.').pop()}`);
-      const sigPath = `${basePath}/signature.${signature.name.split('.').pop()}`;
-      const { error: sigErr } = await supabase.storage
-        .from('member-documents')
-        .upload(sigPath, signature, { contentType: signature.type, upsert: true });
-      if (sigErr) throw sigErr;
+      const aadhaarBackPath  = await uploadCompressedImage(aadhaarBack,  `${basePath}/aadhaar-back.${aadhaarBack.name.split('.').pop()}`);
+      const sigPath          = await uploadCompressedImage(signature,    `${basePath}/signature.${signature.name.split('.').pop()}`);
 
-      // Insert and immediately select back to get the auto-assigned application_no
       const { data: inserted, error } = await supabase
         .from('members')
         .insert({
@@ -120,7 +116,7 @@ export const PublicRegistration: React.FC = () => {
       });
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message ?? 'Something went wrong');
+      setErrorMsg(err.message ?? 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -204,7 +200,7 @@ export const PublicRegistration: React.FC = () => {
             onChange={(f) => handleFile(f, 'Signature', setSignature, setSignatureError)}
           />
         </div>
-        {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+        {errorMsg && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorMsg}</p>}
         <button
           type="submit"
           disabled={submitting}
