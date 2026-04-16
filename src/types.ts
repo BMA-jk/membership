@@ -9,6 +9,7 @@ export interface Member {
   occupation: string | null;
   designation: string | null;
   area_district: string | null;
+  assembly_constituency: string | null;
   dob: string | null;
   blood_group: string | null;
   contact_no: string | null;
