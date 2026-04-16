@@ -15,9 +15,8 @@ async function getSignedUrl(bucket: string, path: string | null): Promise<string
   return error ? null : data.signedUrl;
 }
 
-// Fixed internal dimensions (A4 portrait ratio)
 const FORM_W = 800;
-const FORM_H = 1132; // 800 * (297/210)
+const FORM_H = 1132;
 
 export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -30,7 +29,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
     getSignedUrl('member-documents', member.signature_url).then(setSigUrl);
   }, [member.photo_url, member.signature_url]);
 
-  // Scale form to always fit wrapper
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
@@ -38,7 +36,8 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
       const { width, height } = entry.contentRect;
       const scaleX = width / FORM_W;
       const scaleY = height / FORM_H;
-      setScale(Math.min(scaleX, scaleY, 1));
+      // Use the smaller axis so form always fits — no cap, scales up on desktop too
+      setScale(Math.min(scaleX, scaleY));
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -99,7 +98,7 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           Flag<br />Placeholder
         </div>
 
-        {/* Header image placeholder — 18.75% (75% of original 25%) */}
+        {/* Header image placeholder */}
         <div style={{
           width: '100%',
           height: '18.75%',
@@ -132,7 +131,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
         {/* Form body */}
         <div style={{ padding: '20px 48px', flexGrow: 1, display: 'flex', flexDirection: 'column', fontSize: 14, color: '#222' }}>
 
-          {/* Membership No */}
           <div style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', marginBottom: 20, width: '45%' }}>
             <span style={{ fontWeight: 'bold', marginRight: 8, whiteSpace: 'nowrap' }}>Membership No.</span>
             <div style={{ flexGrow: 1, borderBottom: '1.5px solid #4b628f', paddingBottom: 2, fontSize: 14 }}>
@@ -143,7 +141,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           <FormRow label="Name:" value={member.full_name} />
           <FormRow label="Father's Name:" value={member.father_name || ''} />
 
-          {/* DOB */}
           <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: 20, width: '100%' }}>
             <span style={{ fontWeight: 'bold', marginRight: 8, whiteSpace: 'nowrap' }}>Date of Birth:</span>
             <DobSegment value={dobDay} width={40} />/
@@ -156,7 +153,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           <FormRow label="District:" value={member.area_district || ''} />
           <FormRow label="Assembly Constituency:" value={constituency} />
 
-          {/* Split: fields + photo */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'stretch', marginTop: 8 }}>
             <div style={{ width: '65%', display: 'flex', flexDirection: 'column' }}>
               <FormRow label="Occupation:" value={member.occupation || member.designation || ''} />
@@ -166,7 +162,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
               <FormRow label="Reference (if any):" value="" />
             </div>
 
-            {/* Photo box */}
             <div style={{
               width: '30%',
               border: '2px dashed red',
@@ -191,18 +186,14 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           </div>
         </div>
 
-        {/* Declaration divider */}
         <hr style={{ border: 'none', borderTop: '1.5px solid #e06020', margin: '8px 48px 20px 48px' }} />
 
-        {/* Declaration */}
         <div style={{ textAlign: 'center', fontSize: 12, padding: '0 80px', lineHeight: 1.5, marginBottom: 28, color: '#222' }}>
           I hereby declare that I will work for the ideology of Hon'ble Prime Minister Narendra Modi<br />
           and serve <strong>the nation with full dedication.</strong>
         </div>
 
-        {/* Signatures area */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '0 48px 40px 128px', position: 'relative' }}>
-          {/* Date */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '0 48px 40px 128px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', width: '25%' }}>
             <span style={{ fontWeight: 'bold', marginRight: 8, fontSize: 12, whiteSpace: 'nowrap' }}>Date:</span>
             <div style={{ flexGrow: 1, borderBottom: '1.5px solid #4b628f', paddingBottom: 2, fontSize: 12 }}>
@@ -210,7 +201,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
             </div>
           </div>
 
-          {/* Signature */}
           <div style={{ display: 'flex', alignItems: 'flex-end', width: '35%' }}>
             <span style={{ fontWeight: 'bold', marginRight: 8, fontSize: 12, whiteSpace: 'nowrap' }}>Signature:</span>
             <div style={{ position: 'relative', flexGrow: 1, height: 48 }}>
@@ -223,7 +213,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           </div>
         </div>
 
-        {/* Footer */}
         <div style={{ background: '#e06020', color: 'white', textAlign: 'center', padding: '16px 0', marginTop: 'auto', position: 'relative', zIndex: 1 }}>
           <p style={{ margin: '4px 0', fontSize: 18, fontWeight: 'bold', letterSpacing: 1.2 }}>NATION FIRST &bull; MODI FOREVER &bull;</p>
           <p style={{ margin: '4px 0', fontSize: 18, fontWeight: 'bold', letterSpacing: 1.2 }}>राष्ट्र प्रथम &bull; मोदी सदैव &bull;</p>
@@ -233,7 +222,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
   );
 };
 
-// ── Helpers ──
 const FormRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: 20, width: '100%' }}>
     <span style={{ fontWeight: 'bold', marginRight: 8, whiteSpace: 'nowrap' }}>{label}</span>
