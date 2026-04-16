@@ -26,7 +26,7 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
 
   useEffect(() => {
     getSignedUrl('member-files', member.photo_url).then(setPhotoUrl);
-    getSignedUrl('member-documents', member.signature_url).then(setSigUrl);
+    getSignedUrl('member-files', member.signature_url).then(setSigUrl);
   }, [member.photo_url, member.signature_url]);
 
   useEffect(() => {
@@ -34,7 +34,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
     if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
       const { width } = entry.contentRect;
-      // Scale based on width only — wrapper height is then set to scaled form height
       setScale(width / FORM_W);
     });
     observer.observe(el);
@@ -47,7 +46,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
   const approvedDate = (member.approved_at || member.created_at || '').slice(0, 10);
 
   return (
-    // Outer wrapper: width 100%, height = scaled form height so nothing clips
     <div
       ref={wrapperRef}
       style={{
@@ -210,7 +208,7 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           </div>
         </div>
 
-        {/* Footer — fully visible, never clipped */}
+        {/* Footer */}
         <div style={{ background: '#e06020', color: 'white', textAlign: 'center', padding: '16px 0', marginTop: 'auto', flexShrink: 0 }}>
           <p style={{ margin: '4px 0', fontSize: 18, fontWeight: 'bold', letterSpacing: 1.2 }}>NATION FIRST &bull; MODI FOREVER &bull;</p>
           <p style={{ margin: '4px 0', fontSize: 18, fontWeight: 'bold', letterSpacing: 1.2 }}>राष्ट्र प्रथम &bull; मोदी सदैव &bull;</p>
