@@ -19,9 +19,9 @@ export const PublicRegistration: React.FC = () => {
     full_name: '',
     father_name: '',
     email: '',
-    designation: '',
     occupation: '',
     area_district: '',
+    assembly_constituency: '',
     dob: '',
     blood_group: '',
     contact_no: '',
@@ -94,9 +94,9 @@ export const PublicRegistration: React.FC = () => {
         email: form.email.trim(),
         contact_no: form.contact_no.trim(),
         address: form.address.trim(),
-        designation: nullify(form.designation),
         occupation: nullify(form.occupation),
         area_district: nullify(form.area_district),
+        assembly_constituency: nullify(form.assembly_constituency),
         dob: nullify(form.dob),
         blood_group: nullify(form.blood_group),
         aadhaar_no: nullify(form.aadhaar_no),
@@ -138,9 +138,9 @@ export const PublicRegistration: React.FC = () => {
           <Input label="Contact Number" name="contact_no" value={form.contact_no} onChange={handleChange} required />
           <Input label="Date of Birth" name="dob" type="date" value={form.dob} onChange={handleChange} />
           <Input label="Blood Group" name="blood_group" value={form.blood_group} onChange={handleChange} />
-          <Input label="Designation" name="designation" value={form.designation} onChange={handleChange} />
           <Input label="Occupation" name="occupation" value={form.occupation} onChange={handleChange} />
           <Input label="Area / District" name="area_district" value={form.area_district} onChange={handleChange} />
+          <Input label="Assembly Constituency" name="assembly_constituency" value={form.assembly_constituency} onChange={handleChange} />
           <Input label="Aadhaar Number" name="aadhaar_no" value={form.aadhaar_no} onChange={handleChange} maxLength={14} placeholder="XXXX XXXX XXXX" />
         </div>
         <div>

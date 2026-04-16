@@ -50,14 +50,14 @@ interface FormModalProps {
 }
 
 const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onReject, busy }) => {
-  const [constituency, setConstituency] = useState(member.assembly_constituency || '');
+  const [designation, setDesignation] = useState(member.designation || '');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [showAadhaar, setShowAadhaar] = useState(false);
 
-  const handleSaveConstituency = async () => {
+  const handleSaveDesignation = async () => {
     setSaving(true); setSaveMsg(null);
-    const { error } = await supabase.from('members').update({ assembly_constituency: constituency }).eq('id', member.id);
+    const { error } = await supabase.from('members').update({ designation }).eq('id', member.id);
     setSaving(false);
     setSaveMsg(error ? 'Failed to save.' : 'Saved!');
   };
@@ -82,24 +82,24 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
           {/* Official Form */}
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold mb-3">Official Form</p>
-            <OfficialForm member={{ ...member, assembly_constituency: constituency }} />
+            <OfficialForm member={{ ...member, designation }} />
           </div>
 
-          {/* Admin: fill Assembly Constituency */}
+          {/* Admin: assign Designation */}
           <div className="bg-slate-50 rounded-xl p-4 flex flex-col gap-3">
-            <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Admin — Fill Missing Fields</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Admin — Assign Designation</p>
             <div className="flex gap-2 items-end">
               <div className="flex flex-col flex-1">
-                <label className="text-xs font-medium text-slate-600 mb-1">Assembly Constituency</label>
+                <label className="text-xs font-medium text-slate-600 mb-1">Designation</label>
                 <input
-                  value={constituency}
-                  onChange={e => { setConstituency(e.target.value); setSaveMsg(null); }}
+                  value={designation}
+                  onChange={e => { setDesignation(e.target.value); setSaveMsg(null); }}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Enter constituency…"
+                  placeholder="e.g. District President…"
                 />
               </div>
               <button
-                onClick={handleSaveConstituency}
+                onClick={handleSaveDesignation}
                 disabled={saving}
                 className="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
               >
