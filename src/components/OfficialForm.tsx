@@ -38,7 +38,7 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
       const { width, height } = entry.contentRect;
       const scaleX = width / FORM_W;
       const scaleY = height / FORM_H;
-      setScale(Math.min(scaleX, scaleY, 1)); // never upscale past 1
+      setScale(Math.min(scaleX, scaleY, 1));
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -50,7 +50,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
   const approvedDate = (member.approved_at || member.created_at || '').slice(0, 10);
 
   return (
-    // Outer wrapper: fills available space, centres the scaled form
     <div
       ref={wrapperRef}
       style={{
@@ -63,7 +62,6 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Inner form: fixed size, scaled down to fit */}
       <div
         style={{
           width: `${FORM_W}px`,
@@ -101,10 +99,10 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           Flag<br />Placeholder
         </div>
 
-        {/* Header image placeholder */}
+        {/* Header image placeholder — 18.75% (75% of original 25%) */}
         <div style={{
           width: '100%',
-          height: '25%',
+          height: '18.75%',
           background: '#f9fafb',
           border: '2px dashed #cbd5e1',
           display: 'flex',
