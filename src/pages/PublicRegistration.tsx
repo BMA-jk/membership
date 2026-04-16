@@ -39,7 +39,7 @@ export const PublicRegistration: React.FC = () => {
   const [signatureError, setSignatureError] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
-  const [successId, setSuccessId] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<{ name: string; applicationNo: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -87,28 +87,37 @@ export const PublicRegistration: React.FC = () => {
         .upload(sigPath, signature, { contentType: signature.type, upsert: true });
       if (sigErr) throw sigErr;
 
-      const { error } = await supabase.from('members').insert({
-        id: memberId,
-        full_name: form.full_name.trim(),
-        father_name: nullify(form.father_name),
-        email: form.email.trim(),
-        contact_no: form.contact_no.trim(),
-        address: form.address.trim(),
-        occupation: nullify(form.occupation),
-        area_district: nullify(form.area_district),
-        assembly_constituency: nullify(form.assembly_constituency),
-        dob: nullify(form.dob),
-        blood_group: nullify(form.blood_group),
-        aadhaar_no: nullify(form.aadhaar_no),
-        photo_url: photoPath,
-        aadhaar_front_url: aadhaarFrontPath,
-        aadhaar_back_url: aadhaarBackPath,
-        signature_url: sigPath,
-        status: 'pending',
-      });
+      // Insert and immediately select back to get the auto-assigned application_no
+      const { data: inserted, error } = await supabase
+        .from('members')
+        .insert({
+          id: memberId,
+          full_name: form.full_name.trim(),
+          father_name: nullify(form.father_name),
+          email: form.email.trim(),
+          contact_no: form.contact_no.trim(),
+          address: form.address.trim(),
+          occupation: nullify(form.occupation),
+          area_district: nullify(form.area_district),
+          assembly_constituency: nullify(form.assembly_constituency),
+          dob: nullify(form.dob),
+          blood_group: nullify(form.blood_group),
+          aadhaar_no: nullify(form.aadhaar_no),
+          photo_url: photoPath,
+          aadhaar_front_url: aadhaarFrontPath,
+          aadhaar_back_url: aadhaarBackPath,
+          signature_url: sigPath,
+          status: 'pending',
+        })
+        .select('application_no, full_name')
+        .single();
 
       if (error) throw error;
-      setSuccessId(memberId);
+
+      setSuccessData({
+        name: inserted.full_name,
+        applicationNo: inserted.application_no ?? memberId,
+      });
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message ?? 'Something went wrong');
@@ -117,13 +126,32 @@ export const PublicRegistration: React.FC = () => {
     }
   };
 
-  if (successId) {
+  if (successData) {
     return (
-      <PageShell title="Membership Application Submitted">
-        <p className="mb-4">Thank you for applying for membership of Bhartiya Modi Army J&K.</p>
-        <p className="mb-2 text-sm">Your application ID is:</p>
-        <p className="font-mono font-semibold text-lg mb-4">{successId}</p>
-        <p className="text-sm text-slate-600">You will receive an email once your application is approved or rejected.</p>
+      <PageShell title="Application Submitted!">
+        <div className="max-w-md">
+          <div className="bg-green-50 border border-green-200 rounded-2xl px-6 py-6 mb-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-bold text-green-800 text-base">Application Received</p>
+                <p className="text-xs text-green-600">Thank you, {successData.name}</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-green-200 px-4 py-3">
+              <p className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-1">Your Form Number</p>
+              <p className="font-mono font-bold text-2xl text-orange-600 tracking-wide">{successData.applicationNo}</p>
+            </div>
+          </div>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            Please save your Form Number — you will need it to track your application status.
+            A membership number will be assigned after your application is reviewed and approved.
+          </p>
+        </div>
       </PageShell>
     );
   }
