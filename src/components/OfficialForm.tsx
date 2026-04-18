@@ -168,6 +168,7 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
               title={photoUrl ? 'Click to enlarge' : undefined}
               style={{
                 width: '30%',
+                maxHeight: 160,
                 border: '2px dashed red',
                 background: photoUrl ? 'transparent' : '#fffafb',
                 color: 'red',
@@ -183,6 +184,7 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
                 overflow: 'hidden',
                 cursor: photoUrl ? 'zoom-in' : 'default',
                 position: 'relative',
+                flexShrink: 0,
               }}>
               {photoUrl
                 ? <img src={photoUrl} alt="Member photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
