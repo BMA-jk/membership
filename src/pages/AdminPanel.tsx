@@ -243,6 +243,7 @@ export const AdminPanel: React.FC = () => {
   }, [isAdmin, activeTab]);
 
   const loadMembers = async (status: MemberStatus) => {
+    setMembers([]);
     const { data, error } = await supabase.from('members').select('*').eq('status', status).order('created_at', { ascending: false });
     if (!error) setMembers(data as Member[]);
   };
