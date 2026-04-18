@@ -100,7 +100,7 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
         }}
       >
         {/* Flag image */}
-        <img src="/flag.jpg" alt="Flag" style={{
+        <img src="/Flag.png" alt="Flag" style={{
           position: 'absolute',
           left: 16,
           bottom: 32,
