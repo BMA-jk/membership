@@ -167,8 +167,8 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
               onClick={() => photoUrl && setPhotoLightbox(true)}
               title={photoUrl ? 'Click to enlarge' : undefined}
               style={{
-                width: '28%',
-                aspectRatio: '3/4',
+                width: 120,
+                height: 160,
                 border: '2px dashed red',
                 background: photoUrl ? 'transparent' : '#fffafb',
                 color: 'red',
@@ -177,8 +177,8 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
                 justifyContent: 'center',
                 textAlign: 'center',
                 fontWeight: 'bold',
-                fontSize: 14,
-                padding: photoUrl ? 0 : 16,
+                fontSize: 12,
+                padding: photoUrl ? 0 : 8,
                 borderRadius: 4,
                 marginBottom: 16,
                 overflow: 'hidden',
