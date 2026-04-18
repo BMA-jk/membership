@@ -244,8 +244,8 @@ export const AdminPanel: React.FC = () => {
   }, [isAdmin, activeTab]);
 
   const loadMembers = async (status: MemberStatus) => {
+    setMembers([]);
     setTabLoading(true);
-    // Fetch only list columns — fast, no image URLs
     const { data, error } = await supabase
       .from('members')
       .select('id,full_name,email,area_district,status,membership_number,application_no,created_at')
