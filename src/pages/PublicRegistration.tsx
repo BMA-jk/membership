@@ -8,25 +8,117 @@ const MAX_BYTES = MAX_KB * 1024;
 
 function validateFile(file: File | null, label: string): string | null {
   if (!file) return null;
-  if (file.size > MAX_BYTES) {
-    return `${label}: ${Math.round(file.size / 1024)}KB — must be ${MAX_KB}KB or less.`;
-  }
+  if (file.size > MAX_BYTES) return `${label}: ${Math.round(file.size/1024)}KB — must be ${MAX_KB}KB or less.`;
   return null;
 }
 
+/* ── Lightbox ─────────────────────────────────────────────── */
+const Lightbox: React.FC<{ src: string; label: string; onClose: () => void }> = ({ src, label, onClose }) => {
+  React.useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.88)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}
+      role="dialog" aria-modal="true"
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ position: 'relative', maxWidth: 'min(92vw,700px)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+      >
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute', top: -44, right: 0,
+            background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+            borderRadius: '50%', width: 36, height: 36, fontSize: 22,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >×</button>
+        <img
+          src={src} alt={label}
+          style={{ maxWidth: '100%', maxHeight: '80dvh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
+        />
+        <p style={{ marginTop: 12, color: '#e5e7eb', fontSize: 13, letterSpacing: '0.03em' }}>{label}</p>
+      </div>
+    </div>
+  );
+};
+
+/* ── Thumbnail ────────────────────────────────────────────── */
+const ImageThumb: React.FC<{ src: string; label: string }> = ({ src, label }) => {
+  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  return (
+    <>
+      <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+        <img
+          src={src}
+          alt={`${label} preview`}
+          onClick={() => setOpen(true)}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          title="Click to preview"
+          style={{
+            width: 80, height: 80, objectFit: 'cover', borderRadius: 8, cursor: 'pointer',
+            border: hovered ? '2px solid #ea580c' : '2px solid #cbd5e1',
+            transform: hovered ? 'scale(1.07)' : 'scale(1)',
+            boxShadow: hovered ? '0 4px 16px rgba(234,88,12,0.3)' : 'none',
+            transition: 'transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
+          }}
+        />
+        <span style={{ fontSize: 11, color: '#64748b' }}>👆 Tap to preview</span>
+      </div>
+      {open && <Lightbox src={src} label={label} onClose={() => setOpen(false)} />}
+    </>
+  );
+};
+
+/* ── FileInput with instant thumbnail ────────────────────── */
+interface FileInputProps {
+  label: string;
+  error: string | null;
+  onChange: (file: File | null) => void;
+}
+const FileInput: React.FC<FileInputProps> = ({ label, error, onChange }) => {
+  const [localThumb, setLocalThumb] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (file) setLocalThumb(URL.createObjectURL(file));
+    else setLocalThumb(null);
+    onChange(file);
+  };
+
+  return (
+    <div className="flex flex-col">
+      <label className="mb-1 text-sm font-medium">
+        {label} <span className="text-slate-400 font-normal">(max {MAX_KB}KB)</span>
+      </label>
+      <input
+        type="file" accept="image/*" onChange={handleChange}
+        className="text-sm text-slate-600 file:mr-2 file:rounded file:border-0 file:bg-orange-50 file:px-2 file:py-1 file:text-xs file:font-medium file:text-orange-700 hover:file:bg-orange-100"
+      />
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      {localThumb && !error && <ImageThumb src={localThumb} label={label} />}
+    </div>
+  );
+};
+
+/* ── Main ─────────────────────────────────────────────────── */
 export const PublicRegistration: React.FC = () => {
   const [form, setForm] = useState({
-    full_name: '',
-    father_name: '',
-    email: '',
-    occupation: '',
-    area_district: '',
-    assembly_constituency: '',
-    dob: '',
-    blood_group: '',
-    contact_no: '',
-    address: '',
-    aadhaar_no: '',
+    full_name: '', father_name: '', email: '', occupation: '',
+    area_district: '', assembly_constituency: '', dob: '',
+    blood_group: '', contact_no: '', address: '', aadhaar_no: '',
   });
 
   const [photo, setPhoto] = useState<File | null>(null);
@@ -44,12 +136,11 @@ export const PublicRegistration: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleFile = (
-    file: File | null,
-    label: string,
+    file: File | null, label: string,
     setter: (f: File | null) => void,
     errorSetter: (e: string | null) => void,
   ) => {
@@ -78,8 +169,7 @@ export const PublicRegistration: React.FC = () => {
       const memberId = crypto.randomUUID();
       const basePath = `members/${memberId}`;
 
-      // All 4 files go to the same 'member-files' bucket
-      const photoPath      = await uploadCompressedImage(photo,        `${basePath}/photo.${photo.name.split('.').pop()}`);
+      const photoPath        = await uploadCompressedImage(photo,        `${basePath}/photo.${photo.name.split('.').pop()}`);
       const aadhaarFrontPath = await uploadCompressedImage(aadhaarFront, `${basePath}/aadhaar-front.${aadhaarFront.name.split('.').pop()}`);
       const aadhaarBackPath  = await uploadCompressedImage(aadhaarBack,  `${basePath}/aadhaar-back.${aadhaarBack.name.split('.').pop()}`);
       const sigPath          = await uploadCompressedImage(signature,    `${basePath}/signature.${signature.name.split('.').pop()}`);
@@ -109,11 +199,7 @@ export const PublicRegistration: React.FC = () => {
         .single();
 
       if (error) throw error;
-
-      setSuccessData({
-        name: inserted.full_name,
-        applicationNo: inserted.application_no ?? memberId,
-      });
+      setSuccessData({ name: inserted.full_name, applicationNo: inserted.application_no ?? memberId });
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message ?? 'Something went wrong. Please try again.');
@@ -170,40 +256,24 @@ export const PublicRegistration: React.FC = () => {
         <div>
           <label className="block text-sm font-medium mb-1">Address (as per Aadhaar card)</label>
           <textarea
-            name="address"
-            value={form.address}
-            onChange={handleChange}
-            required
+            name="address" value={form.address} onChange={handleChange} required
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
             rows={3}
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <FileInput
-            label="Photo"
-            error={photoError}
-            onChange={(f) => handleFile(f, 'Photo', setPhoto, setPhotoError)}
-          />
-          <FileInput
-            label="Aadhaar Front"
-            error={aadhaarFrontError}
-            onChange={(f) => handleFile(f, 'Aadhaar Front', setAadhaarFront, setAadhaarFrontError)}
-          />
-          <FileInput
-            label="Aadhaar Back"
-            error={aadhaarBackError}
-            onChange={(f) => handleFile(f, 'Aadhaar Back', setAadhaarBack, setAadhaarBackError)}
-          />
-          <FileInput
-            label="Signature"
-            error={signatureError}
-            onChange={(f) => handleFile(f, 'Signature', setSignature, setSignatureError)}
-          />
+          <FileInput label="Photo" error={photoError}
+            onChange={f => handleFile(f, 'Photo', setPhoto, setPhotoError)} />
+          <FileInput label="Aadhaar Front" error={aadhaarFrontError}
+            onChange={f => handleFile(f, 'Aadhaar Front', setAadhaarFront, setAadhaarFrontError)} />
+          <FileInput label="Aadhaar Back" error={aadhaarBackError}
+            onChange={f => handleFile(f, 'Aadhaar Back', setAadhaarBack, setAadhaarBackError)} />
+          <FileInput label="Signature" error={signatureError}
+            onChange={f => handleFile(f, 'Signature', setSignature, setSignatureError)} />
         </div>
         {errorMsg && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorMsg}</p>}
         <button
-          type="submit"
-          disabled={submitting}
+          type="submit" disabled={submitting}
           className="px-4 py-2 rounded-md bg-orange-600 text-white text-sm font-medium hover:bg-orange-700 disabled:opacity-60"
         >
           {submitting ? 'Submitting...' : 'Submit Application'}
@@ -213,33 +283,10 @@ export const PublicRegistration: React.FC = () => {
   );
 };
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-}
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> { label: string; }
 const Input: React.FC<InputProps> = ({ label, ...rest }) => (
   <div className="flex flex-col text-sm">
     <label className="mb-1 font-medium">{label}</label>
     <input {...rest} className="rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500" />
-  </div>
-);
-
-interface FileInputProps {
-  label: string;
-  error: string | null;
-  onChange: (file: File | null) => void;
-}
-const FileInput: React.FC<FileInputProps> = ({ label, error, onChange }) => (
-  <div className="flex flex-col">
-    <label className="mb-1 text-sm font-medium">{label}</label>
-    <input
-      type="file"
-      accept="image/*"
-      onChange={(e) => onChange(e.target.files?.[0] || null)}
-      className="text-xs"
-    />
-    {error
-      ? <p className="text-[0.7rem] text-red-500 mt-1">{error}</p>
-      : <p className="text-[0.7rem] text-slate-500 mt-1">Max 50KB.</p>
-    }
   </div>
 );
