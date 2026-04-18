@@ -125,7 +125,12 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
             <p className="font-bold text-slate-800 text-lg">{member.full_name}</p>
             <div className="flex items-center gap-2 mt-0.5">
               <Badge status={member.status as MemberStatus} />
-              {member.membership_number && <span className="text-xs text-orange-600 font-semibold bg-orange-50 px-2 py-0.5 rounded-full">{member.membership_number}</span>}
+              {member.status === 'pending'
+                ? <span className="text-xs text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-full">Membership No.: Not assigned yet</span>
+                : member.membership_number
+                  ? <span className="text-xs text-orange-600 font-semibold bg-orange-50 px-2 py-0.5 rounded-full">{member.membership_number}</span>
+                  : null
+              }
             </div>
           </div>
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">×</button>
@@ -278,12 +283,15 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleReject = async (member: Member) => {
-    const reason = window.prompt('Reason for rejection (optional):') ?? '';
+    const confirmed = window.confirm(
+      '⚠️ Warning: Rejecting this application will permanently delete all submitted data and uploaded documents. This action cannot be undone.\n\nAre you sure you want to reject and delete this application?'
+    );
+    if (!confirmed) return;
     setBusy(true); setActionMsg(null);
     try {
-      const { error } = await supabase.from('members').update({ status: 'rejected', rejection_reason: reason }).eq('id', member.id);
+      const { error } = await supabase.from('members').delete().eq('id', member.id);
       if (error) throw error;
-      setActionMsg({ type: 'ok', text: 'Member rejected.' });
+      setActionMsg({ type: 'ok', text: 'Application rejected and permanently deleted.' });
       await loadMembers(activeTab as MemberStatus);
       setFormMember(null);
     } catch (err: any) {
