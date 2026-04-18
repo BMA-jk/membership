@@ -99,41 +99,21 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           fontSize: '14px',
         }}
       >
-        {/* Flag placeholder */}
-        <div style={{
+        {/* Flag image */}
+        <img src="/flag.jpg" alt="Flag" style={{
           position: 'absolute',
           left: 16,
           bottom: 32,
           width: 104,
           height: 144,
           zIndex: 10,
-          background: 'transparent',
-          border: '1px dashed rgba(0,0,0,0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 10,
-          color: 'rgba(0,0,0,0.4)',
-          textAlign: 'center',
-        }}>
-          Flag<br />Placeholder
-        </div>
+          objectFit: 'cover',
+          display: 'block',
+        }} />
 
-        {/* Header image placeholder */}
-        <div style={{
-          width: '100%',
-          height: '18.75%',
-          background: '#f9fafb',
-          border: '2px dashed #cbd5e1',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 16,
-          color: '#888',
-          fontWeight: 'bold',
-          flexShrink: 0,
-        }}>
-          Image Placeholder (Header Section)
+        {/* Header image */}
+        <div style={{ width: '100%', height: '18.75%', flexShrink: 0, overflow: 'hidden' }}>
+          <img src="/header.jpg" alt="Header" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </div>
 
         {/* Title */}
