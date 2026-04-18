@@ -167,8 +167,8 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
               onClick={() => photoUrl && setPhotoLightbox(true)}
               title={photoUrl ? 'Click to enlarge' : undefined}
               style={{
-                width: '30%',
-                maxHeight: 160,
+                width: '28%',
+                aspectRatio: '3/4',
                 border: '2px dashed red',
                 background: photoUrl ? 'transparent' : '#fffafb',
                 color: 'red',
@@ -185,6 +185,7 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
                 cursor: photoUrl ? 'zoom-in' : 'default',
                 position: 'relative',
                 flexShrink: 0,
+                alignSelf: 'flex-start',
               }}>
               {photoUrl
                 ? <img src={photoUrl} alt="Member photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -220,13 +221,13 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
           <div style={{ display: 'flex', alignItems: 'flex-end', width: '35%' }}>
             <span style={{ fontWeight: 'bold', marginRight: 8, fontSize: 12, whiteSpace: 'nowrap' }}>Signature:</span>
             <div
-              style={{ position: 'relative', flexGrow: 1, height: 48, cursor: sigUrl ? 'zoom-in' : 'default' }}
+              style={{ position: 'relative', flexGrow: 1, height: 64, cursor: sigUrl ? 'zoom-in' : 'default' }}
               onClick={() => sigUrl && setSigLightbox(true)}
               title={sigUrl ? 'Click to enlarge' : undefined}
             >
               {sigUrl
-                ? <img src={sigUrl} alt="Signature" style={{ position: 'absolute', bottom: 2, left: 0, width: '100%', height: 48, objectFit: 'contain' }} />
-                : <div style={{ position: 'absolute', bottom: 2, left: 0, width: '100%', height: 48, border: '1px dashed rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'rgba(0,0,0,0.4)' }}>Signature Placeholder</div>
+                ? <img src={sigUrl} alt="Signature" style={{ position: 'absolute', bottom: 2, left: 0, width: '100%', height: 62, objectFit: 'contain' }} />
+                : <div style={{ position: 'absolute', bottom: 2, left: 0, width: '100%', height: 62, border: '1px dashed rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'rgba(0,0,0,0.4)' }}>Signature</div>
               }
               <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 1.5, background: '#4b628f' }} />
               {sigUrl && (
