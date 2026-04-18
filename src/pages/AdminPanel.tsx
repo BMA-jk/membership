@@ -18,14 +18,41 @@ const Field: React.FC<{ label: string; value?: string | null }> = ({ label, valu
   </div>
 );
 
+/* ── Admin Lightbox ──────────────────────────────────────────────────────── */
+const AdminLightbox: React.FC<{ src: string; label: string; onClose: () => void }> = ({ src, label, onClose }) => {
+  React.useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.90)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      role="dialog" aria-modal="true"
+    >
+      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: 'min(94vw,800px)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <button
+          onClick={onClose}
+          style={{ position: 'absolute', top: -48, right: 0, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '50%', width: 38, height: 38, fontSize: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >×</button>
+        <img src={src} alt={label} style={{ maxWidth: '100%', maxHeight: '82dvh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)' }} />
+        <p style={{ marginTop: 14, color: '#e5e7eb', fontSize: 13, letterSpacing: '0.03em' }}>{label}</p>
+      </div>
+    </div>
+  );
+};
+
 interface AsyncImageProps { label: string; path: string | null; bucket?: string; }
 const AsyncImage: React.FC<AsyncImageProps> = ({ label, path, bucket = 'member-files' }) => {
   const [url, setUrl] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState(false);
+  const [hovered, setHovered] = useState(false);
   useEffect(() => {
     let cancelled = false;
     if (path) {
       supabase.storage.from(bucket).createSignedUrl(path, 3600)
-        .then(({ data, error }) => { if (!cancelled && !error) setUrl(data.signedUrl); });
+        .then(({ data, error }) => { if (!cancelled && !error) setUrl(data!.signedUrl); });
     }
     return () => { cancelled = true; };
   }, [path, bucket]);
@@ -33,8 +60,35 @@ const AsyncImage: React.FC<AsyncImageProps> = ({ label, path, bucket = 'member-f
   return (
     <div>
       <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium mb-1">{label}</p>
-      {url ? <img src={url} alt={label} className="w-full h-36 object-cover rounded-lg border border-slate-200" />
-           : <div className="w-full h-36 rounded-lg bg-slate-100 animate-pulse" />}
+      {url ? (
+        <>
+          <div style={{ position: 'relative', cursor: 'pointer' }}
+            onClick={() => setLightbox(true)}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+          >
+            <img
+              src={url} alt={label}
+              className="w-full h-36 object-cover rounded-lg border border-slate-200"
+              style={{ transition: 'opacity 0.15s', opacity: hovered ? 0.82 : 1 }}
+            />
+            <div style={{
+              position: 'absolute', inset: 0, borderRadius: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: hovered ? 1 : 0, transition: 'opacity 0.15s',
+              background: 'rgba(0,0,0,0.35)',
+            }}>
+              <span style={{ color: '#fff', fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(0,0,0,0.5)', padding: '4px 12px', borderRadius: 20 }}>
+                🔍 View Full
+              </span>
+            </div>
+          </div>
+          <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Click to enlarge</p>
+          {lightbox && <AdminLightbox src={url} label={label} onClose={() => setLightbox(false)} />}
+        </>
+      ) : (
+        <div className="w-full h-36 rounded-lg bg-slate-100 animate-pulse" />
+      )}
     </div>
   );
 };
@@ -78,6 +132,14 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
         </div>
 
         <div className="p-6 flex flex-col gap-6 overflow-y-auto">
+
+          {/* Candidate Photo */}
+          {member.photo_url && (
+            <div className="flex flex-col sm:flex-row gap-4 items-start">
+              <AsyncImage label="Candidate Photo" path={member.photo_url} />
+              <AsyncImage label="Signature" path={member.signature_url} />
+            </div>
+          )}
 
           {/* Official Form */}
           <div>
