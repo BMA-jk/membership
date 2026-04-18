@@ -4,11 +4,13 @@ import { PageShell } from '../components/PageShell';
 import { uploadCompressedImage } from '../utils/uploadCompressedImage';
 
 const MAX_KB = 50;
+const PHOTO_MAX_KB = 100;
 const MAX_BYTES = MAX_KB * 1024;
+const PHOTO_MAX_BYTES = PHOTO_MAX_KB * 1024;
 
-function validateFile(file: File | null, label: string): string | null {
+function validateFile(file: File | null, label: string, maxKb: number = MAX_KB): string | null {
   if (!file) return null;
-  if (file.size > MAX_BYTES) return `${label}: ${Math.round(file.size/1024)}KB — must be ${MAX_KB}KB or less.`;
+  if (file.size > maxKb * 1024) return `${label}: ${Math.round(file.size/1024)}KB — must be ${maxKb}KB or less.`;
   return null;
 }
 
@@ -94,8 +96,9 @@ interface FileInputProps {
   error: string | null;
   onChange: (file: File | null) => void;
   variant?: 'square' | 'signature';
+  maxKbLabel?: number;
 }
-const FileInput: React.FC<FileInputProps> = ({ label, error, onChange, variant = 'square' }) => {
+const FileInput: React.FC<FileInputProps> = ({ label, error, onChange, variant = 'square', maxKbLabel }) => {
   const [localThumb, setLocalThumb] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,7 +111,7 @@ const FileInput: React.FC<FileInputProps> = ({ label, error, onChange, variant =
   return (
     <div className="flex flex-col">
       <label className="mb-1 text-sm font-medium">
-        {label} <span className="text-slate-400 font-normal">(max {MAX_KB}KB)</span>
+        {label} <span className="text-slate-400 font-normal">(max {maxKbLabel ?? MAX_KB}KB)</span>
       </label>
       <input
         type="file" accept="image/*" onChange={handleChange}
@@ -269,8 +272,8 @@ export const PublicRegistration: React.FC = () => {
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <FileInput label="Photo" error={photoError}
-            onChange={f => handleFile(f, 'Photo', setPhoto, setPhotoError)} />
+          <FileInput label="Photo" error={photoError} maxKbLabel={PHOTO_MAX_KB}
+            onChange={f => handleFile(f, 'Photo', setPhoto, setPhotoError, PHOTO_MAX_KB)} />
           <FileInput label="Aadhaar Front" error={aadhaarFrontError}
             onChange={f => handleFile(f, 'Aadhaar Front', setAadhaarFront, setAadhaarFrontError)} />
           <FileInput label="Aadhaar Back" error={aadhaarBackError}
