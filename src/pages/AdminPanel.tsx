@@ -243,7 +243,9 @@ export const AdminPanel: React.FC = () => {
     if (isAdmin && activeTab !== 'create-admin') loadMembers(activeTab as MemberStatus);
   }, [isAdmin, activeTab]);
 
+  const fetchRef = useRef<number>(0);
   const loadMembers = async (status: MemberStatus) => {
+    const token = ++fetchRef.current;
     setMembers([]);
     setTabLoading(true);
     const { data, error } = await supabase
@@ -251,6 +253,8 @@ export const AdminPanel: React.FC = () => {
       .select('id,full_name,email,area_district,status,membership_number,application_no,created_at')
       .eq('status', status)
       .order('created_at', { ascending: false });
+    // Discard result if a newer fetch was started
+    if (token !== fetchRef.current) return;
     if (!error) setMembers(data as Member[]);
     setTabLoading(false);
   };
