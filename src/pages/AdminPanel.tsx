@@ -239,11 +239,12 @@ export const AdminPanel: React.FC = () => {
     });
   }, []);
 
+  const fetchRef = useRef<number>(0);
+
   useEffect(() => {
     if (isAdmin && activeTab !== 'create-admin') loadMembers(activeTab as MemberStatus);
   }, [isAdmin, activeTab]);
 
-  const fetchRef = useRef<number>(0);
   const loadMembers = async (status: MemberStatus) => {
     const token = ++fetchRef.current;
     setMembers([]);
