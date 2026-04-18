@@ -18,10 +18,36 @@ async function getSignedUrl(bucket: string, path: string | null): Promise<string
 const FORM_W = 800;
 const FORM_H = 1132;
 
+const FormLightbox: React.FC<{ src: string; label: string; onClose: () => void }> = ({ src, label, onClose }) => {
+  React.useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.90)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      role="dialog" aria-modal="true"
+    >
+      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: 'min(94vw,800px)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <button
+          onClick={onClose}
+          style={{ position: 'absolute', top: -48, right: 0, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '50%', width: 38, height: 38, fontSize: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >×</button>
+        <img src={src} alt={label} style={{ maxWidth: '100%', maxHeight: '82dvh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)' }} />
+        <p style={{ marginTop: 14, color: '#e5e7eb', fontSize: 13, letterSpacing: '0.03em' }}>{label}</p>
+      </div>
+    </div>
+  );
+};
+
 export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [sigUrl, setSigUrl] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
+  const [photoLightbox, setPhotoLightbox] = useState(false);
+  const [sigLightbox, setSigLightbox] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -157,27 +183,40 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
               <FormRow label="Reference (if any):" value="" />
             </div>
 
-            <div style={{
-              width: '30%',
-              border: '2px dashed red',
-              background: photoUrl ? 'transparent' : '#fffafb',
-              color: 'red',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              fontWeight: 'bold',
-              fontSize: 14,
-              padding: photoUrl ? 0 : 16,
-              borderRadius: 4,
-              marginBottom: 16,
-              overflow: 'hidden',
-            }}>
+            <div
+              onClick={() => photoUrl && setPhotoLightbox(true)}
+              title={photoUrl ? 'Click to enlarge' : undefined}
+              style={{
+                width: '30%',
+                border: '2px dashed red',
+                background: photoUrl ? 'transparent' : '#fffafb',
+                color: 'red',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                fontWeight: 'bold',
+                fontSize: 14,
+                padding: photoUrl ? 0 : 16,
+                borderRadius: 4,
+                marginBottom: 16,
+                overflow: 'hidden',
+                cursor: photoUrl ? 'zoom-in' : 'default',
+                position: 'relative',
+              }}>
               {photoUrl
                 ? <img src={photoUrl} alt="Member photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : 'member photo goes here'
               }
+              {photoUrl && (
+                <div style={{ position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,0.55)', borderRadius: 4, padding: '2px 6px', fontSize: 10, color: '#fff', pointerEvents: 'none' }}>
+                  🔍
+                </div>
+              )}
             </div>
+            {photoLightbox && photoUrl && (
+              <FormLightbox src={photoUrl} label="Candidate Photo" onClose={() => setPhotoLightbox(false)} />
+            )}
           </div>
         </div>
 
@@ -198,13 +237,23 @@ export const OfficialForm: React.FC<Props> = ({ member, adminFields }) => {
 
           <div style={{ display: 'flex', alignItems: 'flex-end', width: '35%' }}>
             <span style={{ fontWeight: 'bold', marginRight: 8, fontSize: 12, whiteSpace: 'nowrap' }}>Signature:</span>
-            <div style={{ position: 'relative', flexGrow: 1, height: 48 }}>
+            <div
+              style={{ position: 'relative', flexGrow: 1, height: 48, cursor: sigUrl ? 'zoom-in' : 'default' }}
+              onClick={() => sigUrl && setSigLightbox(true)}
+              title={sigUrl ? 'Click to enlarge' : undefined}
+            >
               {sigUrl
                 ? <img src={sigUrl} alt="Signature" style={{ position: 'absolute', bottom: 2, left: 0, width: '100%', height: 48, objectFit: 'contain' }} />
                 : <div style={{ position: 'absolute', bottom: 2, left: 0, width: '100%', height: 48, border: '1px dashed rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'rgba(0,0,0,0.4)' }}>Signature Placeholder</div>
               }
               <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 1.5, background: '#4b628f' }} />
+              {sigUrl && (
+                <div style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.5)', borderRadius: 4, padding: '1px 5px', fontSize: 9, color: '#fff', pointerEvents: 'none' }}>🔍</div>
+              )}
             </div>
+            {sigLightbox && sigUrl && (
+              <FormLightbox src={sigUrl} label="Signature" onClose={() => setSigLightbox(false)} />
+            )}
           </div>
         </div>
 
