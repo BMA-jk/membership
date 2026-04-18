@@ -133,14 +133,6 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
 
         <div className="p-6 flex flex-col gap-6 overflow-y-auto">
 
-          {/* Candidate Photo */}
-          {member.photo_url && (
-            <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <AsyncImage label="Candidate Photo" path={member.photo_url} />
-              <AsyncImage label="Signature" path={member.signature_url} />
-            </div>
-          )}
-
           {/* Official Form */}
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold mb-3">Official Form</p>
