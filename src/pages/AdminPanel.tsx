@@ -290,6 +290,17 @@ export const AdminPanel: React.FC = () => {
     if (!confirmed) return;
     setBusy(true); setActionMsg(null);
     try {
+      // Delete uploaded storage files
+      const filesToDelete = [
+        member.photo_url,
+        member.aadhaar_front_url,
+        member.aadhaar_back_url,
+        member.signature_url,
+      ].filter(Boolean) as string[];
+      if (filesToDelete.length > 0) {
+        await supabase.storage.from('member-files').remove(filesToDelete);
+      }
+      // Delete DB record
       const { error } = await supabase.from('members').delete().eq('id', member.id);
       if (error) throw error;
       setActionMsg({ type: 'ok', text: 'Application rejected and permanently deleted.' });
@@ -485,17 +496,25 @@ export const AdminPanel: React.FC = () => {
               <tbody>
                 {filtered.map(m => (
                   <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3">
-                      <p className="font-medium text-slate-800">{m.full_name}</p>
-                      <p className="text-xs text-slate-400">{m.email}</p>
-                    </td>
-                    <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '—'}</td>
-                    <td className="px-5 py-3 text-slate-500 hidden lg:table-cell">{(m.created_at || '').slice(0, 10)}</td>
-                    <td className="px-5 py-3 hidden lg:table-cell">
-                      {m.membership_number
-                        ? <span className="text-orange-600 font-semibold text-xs bg-orange-50 px-2 py-0.5 rounded-full">{m.membership_number}</span>
-                        : <span className="text-slate-400">—</span>}
-                    </td>
+                    {activeTab === 'rejected' ? (
+                      <td className="px-5 py-3" colSpan={4}>
+                        <span className="text-sm font-mono text-slate-500">Application No.: {m.application_no ?? m.id.slice(0, 8).toUpperCase()}</span>
+                      </td>
+                    ) : (
+                      <>
+                        <td className="px-5 py-3">
+                          <p className="font-medium text-slate-800">{m.full_name}</p>
+                          <p className="text-xs text-slate-400">{m.email}</p>
+                        </td>
+                        <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '—'}</td>
+                        <td className="px-5 py-3 text-slate-500 hidden lg:table-cell">{(m.created_at || '').slice(0, 10)}</td>
+                        <td className="px-5 py-3 hidden lg:table-cell">
+                          {m.membership_number
+                            ? <span className="text-orange-600 font-semibold text-xs bg-orange-50 px-2 py-0.5 rounded-full">{m.membership_number}</span>
+                            : <span className="text-slate-400">—</span>}
+                        </td>
+                      </>
+                    )}
                     <td className="px-5 py-3 text-right">
                       <button
                         onClick={() => { setFormMember(m); setActionMsg(null); }}
