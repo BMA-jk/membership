@@ -47,7 +47,7 @@ export const PageShell: React.FC<Props> = ({ title, children }) => {
             justifyContent: 'center',
           }}>
             <img
-              src="/logo.jpg"
+              src="/logo-removebg-preview.png"
               alt="BMA JK Logo"
               width={72}
               height={72}
