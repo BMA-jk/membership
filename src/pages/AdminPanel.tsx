@@ -245,8 +245,12 @@ export const AdminPanel: React.FC = () => {
 
   const loadMembers = async (status: MemberStatus) => {
     setTabLoading(true);
-    setMembers([]);
-    const { data, error } = await supabase.from('members').select('*').eq('status', status).order('created_at', { ascending: false });
+    // Fetch only list columns — fast, no image URLs
+    const { data, error } = await supabase
+      .from('members')
+      .select('id,full_name,email,area_district,status,membership_number,application_no,created_at')
+      .eq('status', status)
+      .order('created_at', { ascending: false });
     if (!error) setMembers(data as Member[]);
     setTabLoading(false);
   };
@@ -526,7 +530,12 @@ export const AdminPanel: React.FC = () => {
                     <td className="px-5 py-3 text-right">
                       {activeTab !== 'rejected' && (
                         <button
-                          onClick={() => { setFormMember(m); setActionMsg(null); }}
+                          onClick={async () => {
+                            setActionMsg(null);
+                            // Fetch full record (incl. images) only when needed
+                            const { data } = await supabase.from('members').select('*').eq('id', m.id).single();
+                            if (data) setFormMember(data as Member);
+                          }}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 text-xs font-semibold hover:bg-orange-100 transition-colors border border-orange-200"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
