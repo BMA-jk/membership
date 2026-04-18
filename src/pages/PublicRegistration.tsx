@@ -54,9 +54,10 @@ const Lightbox: React.FC<{ src: string; label: string; onClose: () => void }> = 
 };
 
 /* ── Thumbnail ────────────────────────────────────────────── */
-const ImageThumb: React.FC<{ src: string; label: string }> = ({ src, label }) => {
+const ImageThumb: React.FC<{ src: string; label: string; variant?: 'square' | 'signature' }> = ({ src, label, variant = 'square' }) => {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const isSig = variant === 'signature';
   return (
     <>
       <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
@@ -68,9 +69,14 @@ const ImageThumb: React.FC<{ src: string; label: string }> = ({ src, label }) =>
           onMouseLeave={() => setHovered(false)}
           title="Click to preview"
           style={{
-            width: 80, height: 80, objectFit: 'cover', borderRadius: 8, cursor: 'pointer',
+            width: isSig ? 200 : 80,
+            height: isSig ? 64 : 80,
+            objectFit: isSig ? 'contain' : 'cover',
+            borderRadius: 6,
+            cursor: 'pointer',
+            background: isSig ? '#f8fafc' : 'transparent',
             border: hovered ? '2px solid #ea580c' : '2px solid #cbd5e1',
-            transform: hovered ? 'scale(1.07)' : 'scale(1)',
+            transform: hovered ? 'scale(1.04)' : 'scale(1)',
             boxShadow: hovered ? '0 4px 16px rgba(234,88,12,0.3)' : 'none',
             transition: 'transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
           }}
@@ -87,8 +93,9 @@ interface FileInputProps {
   label: string;
   error: string | null;
   onChange: (file: File | null) => void;
+  variant?: 'square' | 'signature';
 }
-const FileInput: React.FC<FileInputProps> = ({ label, error, onChange }) => {
+const FileInput: React.FC<FileInputProps> = ({ label, error, onChange, variant = 'square' }) => {
   const [localThumb, setLocalThumb] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,7 +115,7 @@ const FileInput: React.FC<FileInputProps> = ({ label, error, onChange }) => {
         className="text-sm text-slate-600 file:mr-2 file:rounded file:border-0 file:bg-orange-50 file:px-2 file:py-1 file:text-xs file:font-medium file:text-orange-700 hover:file:bg-orange-100"
       />
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-      {localThumb && !error && <ImageThumb src={localThumb} label={label} />}
+      {localThumb && !error && <ImageThumb src={localThumb} label={label} variant={variant} />}
     </div>
   );
 };
@@ -268,7 +275,7 @@ export const PublicRegistration: React.FC = () => {
             onChange={f => handleFile(f, 'Aadhaar Front', setAadhaarFront, setAadhaarFrontError)} />
           <FileInput label="Aadhaar Back" error={aadhaarBackError}
             onChange={f => handleFile(f, 'Aadhaar Back', setAadhaarBack, setAadhaarBackError)} />
-          <FileInput label="Signature" error={signatureError}
+          <FileInput label="Signature" error={signatureError} variant="signature"
             onChange={f => handleFile(f, 'Signature', setSignature, setSignatureError)} />
         </div>
         {errorMsg && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorMsg}</p>}
