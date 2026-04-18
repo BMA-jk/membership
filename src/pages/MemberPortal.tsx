@@ -69,10 +69,41 @@ export const MemberPortal: React.FC = () => {
     setMember(data as Member);
   };
 
+  const [checking, setChecking] = useState(false);
+
   const handleSendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setChecking(true);
     try {
+      // Check membership status before sending link
+      const { data: member, error: memberError } = await supabase
+        .from('members')
+        .select('status, full_name')
+        .eq('email', email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (memberError) throw memberError;
+
+      if (!member) {
+        setErrorMsg('No membership application found for this email address.');
+        setChecking(false);
+        return;
+      }
+
+      if (member.status === 'pending') {
+        setErrorMsg('Your application is still under review. You will be notified once approved.');
+        setChecking(false);
+        return;
+      }
+
+      if (member.status === 'rejected') {
+        setErrorMsg('Your membership application was not approved.');
+        setChecking(false);
+        return;
+      }
+
+      // status === 'approved' — send magic link
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: { emailRedirectTo: window.location.origin + '/member' },
@@ -81,6 +112,8 @@ export const MemberPortal: React.FC = () => {
       setMagicSent(true);
     } catch (err: any) {
       setErrorMsg(err.message ?? 'Could not send link');
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -118,9 +151,9 @@ export const MemberPortal: React.FC = () => {
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
           </div>
           {errorMsg && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{errorMsg}</p>}
-          <button type="submit"
-            className="w-full py-2.5 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors">
-            Send Magic Link
+          <button type="submit" disabled={checking}
+            className="w-full py-2.5 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+            {checking ? 'Checking…' : 'Send Magic Link'}
           </button>
           {magicSent && (
             <p className="text-xs text-green-700 bg-green-50 px-3 py-2 rounded-lg">
