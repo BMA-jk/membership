@@ -56,10 +56,18 @@ const Lightbox: React.FC<{ src: string; label: string; onClose: () => void }> = 
 };
 
 /* ── Thumbnail ────────────────────────────────────────────── */
-const ImageThumb: React.FC<{ src: string; label: string; variant?: 'square' | 'signature' }> = ({ src, label, variant = 'square' }) => {
+const ImageThumb: React.FC<{ src: string; label: string; variant?: 'square' | 'signature' | 'aadhaar' }> = ({ src, label, variant = 'square' }) => {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const isSig = variant === 'signature';
+
+  // Dimensions and fit per variant
+  const styles: Record<string, React.CSSProperties> = {
+    square:   { width: 80,  height: 100, objectFit: 'cover',    background: 'transparent' },   // portrait — shows full face
+    aadhaar:  { width: 180, height: 100, objectFit: 'contain',  background: '#f1f5f9' },        // landscape — full card visible
+    signature:{ width: 200, height: 60,  objectFit: 'contain',  background: '#f8fafc' },        // wide strip — full sig visible
+  };
+  const s = styles[variant];
+
   return (
     <>
       <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
@@ -71,12 +79,9 @@ const ImageThumb: React.FC<{ src: string; label: string; variant?: 'square' | 's
           onMouseLeave={() => setHovered(false)}
           title="Click to preview"
           style={{
-            width: isSig ? 200 : 80,
-            height: isSig ? 64 : 80,
-            objectFit: isSig ? 'contain' : 'cover',
+            ...s,
             borderRadius: 6,
             cursor: 'pointer',
-            background: isSig ? '#f8fafc' : 'transparent',
             border: hovered ? '2px solid #ea580c' : '2px solid #cbd5e1',
             transform: hovered ? 'scale(1.04)' : 'scale(1)',
             boxShadow: hovered ? '0 4px 16px rgba(234,88,12,0.3)' : 'none',
@@ -95,7 +100,7 @@ interface FileInputProps {
   label: string;
   error: string | null;
   onChange: (file: File | null) => void;
-  variant?: 'square' | 'signature';
+  variant?: 'square' | 'signature' | 'aadhaar';
   maxKbLabel?: number;
 }
 const FileInput: React.FC<FileInputProps> = ({ label, error, onChange, variant = 'square', maxKbLabel }) => {
@@ -271,12 +276,33 @@ export const PublicRegistration: React.FC = () => {
             rows={3}
           />
         </div>
+        {/* Image upload instructions */}
+        <div style={{
+          background: '#fff7ed',
+          border: '1px solid #fdba74',
+          borderRadius: 10,
+          padding: '12px 16px',
+          fontSize: 13,
+          color: '#9a3412',
+          lineHeight: 1.7,
+        }}>
+          <p style={{ fontWeight: 700, marginBottom: 4 }}>📸 Image Upload Instructions</p>
+          <ul style={{ paddingLeft: 18, margin: 0 }}>
+            <li><strong>Passport Photo</strong> — max <strong>100KB</strong>. Use a clear front-facing photo.</li>
+            <li><strong>Aadhaar Front &amp; Back</strong> — max <strong>50KB</strong> each. Full card must be visible.</li>
+            <li><strong>Signature</strong> — max <strong>50KB</strong>. Sign on white paper, photograph clearly.</li>
+          </ul>
+          <p style={{ marginTop: 6, fontSize: 12, color: '#c2410c' }}>
+            💡 Use any free image compression app (e.g. <strong>Compress JPEG</strong>, <strong>ILoveIMG</strong>, or Google Photos) to reduce file size before uploading.
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <FileInput label="Photo" error={photoError} maxKbLabel={PHOTO_MAX_KB}
             onChange={f => handleFile(f, 'Photo', setPhoto, setPhotoError, PHOTO_MAX_KB)} />
-          <FileInput label="Aadhaar Front" error={aadhaarFrontError}
+          <FileInput label="Aadhaar Front" error={aadhaarFrontError} variant="aadhaar"
             onChange={f => handleFile(f, 'Aadhaar Front', setAadhaarFront, setAadhaarFrontError)} />
-          <FileInput label="Aadhaar Back" error={aadhaarBackError}
+          <FileInput label="Aadhaar Back" error={aadhaarBackError} variant="aadhaar"
             onChange={f => handleFile(f, 'Aadhaar Back', setAadhaarBack, setAadhaarBackError)} />
           <FileInput label="Signature" error={signatureError} variant="signature"
             onChange={f => handleFile(f, 'Signature', setSignature, setSignatureError)} />
