@@ -9,6 +9,7 @@ interface Props {
 const NAV_LINKS = [
   { to: '/', label: 'Apply' },
   { to: '/member', label: 'Member Portal' },
+  { to: '/admin', label: 'Admin' },
 ];
 
 export const PageShell: React.FC<Props> = ({ title, children }) => {
