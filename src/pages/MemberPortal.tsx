@@ -6,11 +6,14 @@ import { Member } from '../types';
 
 export const MemberPortal: React.FC = () => {
   const [email, setEmail] = useState('');
-  const [magicSent, setMagicSent] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [member, setMember] = useState<Member | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -69,15 +72,12 @@ export const MemberPortal: React.FC = () => {
     setMember(data as Member);
   };
 
-  const [checking, setChecking] = useState(false);
-
-  const handleSendMagicLink = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setChecking(true);
     try {
-      // Check membership status before sending link
-      const { data: member, error: memberError } = await supabase
+      const { data: memberData, error: memberError } = await supabase
         .from('members')
         .select('status, full_name')
         .eq('email', email.trim().toLowerCase())
@@ -85,35 +85,49 @@ export const MemberPortal: React.FC = () => {
 
       if (memberError) throw memberError;
 
-      if (!member) {
+      if (!memberData) {
         setErrorMsg('No membership application found for this email address.');
-        setChecking(false);
         return;
       }
-
-      if (member.status === 'pending') {
+      if (memberData.status === 'pending') {
         setErrorMsg('Your application is still under review. You will be notified once approved.');
-        setChecking(false);
         return;
       }
-
-      if (member.status === 'rejected') {
+      if (memberData.status === 'rejected') {
         setErrorMsg('Your membership application was not approved.');
-        setChecking(false);
         return;
       }
 
-      // status === 'approved' — send magic link
+      // approved — send OTP
       const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: window.location.origin + '/member' },
+        email: email.trim().toLowerCase(),
+        options: { shouldCreateUser: false },
       });
       if (error) throw error;
-      setMagicSent(true);
+      setOtpSent(true);
     } catch (err: any) {
-      setErrorMsg(err.message ?? 'Could not send link');
+      setErrorMsg(err.message ?? 'Could not send OTP');
     } finally {
       setChecking(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setVerifying(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: otp.trim(),
+        type: 'email',
+      });
+      if (error) throw error;
+      // onAuthStateChange will handle loading the member
+    } catch (err: any) {
+      setErrorMsg(err.message ?? 'Invalid or expired OTP. Please try again.');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -122,6 +136,9 @@ export const MemberPortal: React.FC = () => {
     setUserId(null);
     setMember(null);
     setErrorMsg(null);
+    setOtpSent(false);
+    setOtp('');
+    setEmail('');
   };
 
   // ── Loading
@@ -137,29 +154,76 @@ export const MemberPortal: React.FC = () => {
     </PageShell>
   );
 
-  // ── Not logged in
-  if (!userId) return (
+  // ── Not logged in — Step 1: Email
+  if (!userId && !otpSent) return (
     <PageShell title="Member Login">
       <div className="max-w-sm">
         <p className="text-sm text-slate-600 mb-4">
-          Enter your registered email to receive a secure magic login link.
+          Enter your registered email to receive a 6-digit OTP code.
         </p>
-        <form onSubmit={handleSendMagicLink} className="space-y-4">
+        <form onSubmit={handleSendOtp} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Email</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              placeholder="your@email.com"
+            />
           </div>
           {errorMsg && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{errorMsg}</p>}
-          <button type="submit" disabled={checking}
-            className="w-full py-2.5 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-            {checking ? 'Checking…' : 'Send Magic Link'}
+          <button
+            type="submit"
+            disabled={checking}
+            className="w-full py-2.5 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {checking ? 'Checking…' : 'Send OTP'}
           </button>
-          {magicSent && (
-            <p className="text-xs text-green-700 bg-green-50 px-3 py-2 rounded-lg">
-              ✓ Magic link sent — check your email inbox.
-            </p>
-          )}
+        </form>
+      </div>
+    </PageShell>
+  );
+
+  // ── Not logged in — Step 2: OTP entry
+  if (!userId && otpSent) return (
+    <PageShell title="Enter OTP">
+      <div className="max-w-sm">
+        <p className="text-sm text-slate-600 mb-1">
+          A 6-digit code was sent to:
+        </p>
+        <p className="text-sm font-semibold text-orange-600 mb-4">{email}</p>
+        <form onSubmit={handleVerifyOtp} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">OTP Code</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              required
+              value={otp}
+              onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-center tracking-[0.5em] font-mono text-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              placeholder="000000"
+            />
+          </div>
+          {errorMsg && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{errorMsg}</p>}
+          <button
+            type="submit"
+            disabled={verifying || otp.length !== 6}
+            className="w-full py-2.5 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {verifying ? 'Verifying…' : 'Verify OTP'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setOtpSent(false); setOtp(''); setErrorMsg(null); }}
+            className="w-full text-xs text-slate-500 hover:text-orange-600 underline"
+          >
+            ← Use a different email
+          </button>
         </form>
       </div>
     </PageShell>
@@ -198,8 +262,6 @@ export const MemberPortal: React.FC = () => {
               </p>
             </div>
           </div>
-
-          {/* Form Number — always shown for pending */}
           {member.application_no && (
             <div className="bg-white rounded-xl border border-yellow-200 px-4 py-3">
               <p className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-1">Form Number</p>
@@ -207,7 +269,6 @@ export const MemberPortal: React.FC = () => {
             </div>
           )}
         </div>
-
         <div className="grid grid-cols-2 gap-3 text-sm">
           {[
             ['Name', member.full_name],
@@ -221,7 +282,6 @@ export const MemberPortal: React.FC = () => {
             </div>
           ))}
         </div>
-
         <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">
           Logout
         </button>
@@ -258,12 +318,10 @@ export const MemberPortal: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Info */}
         <div className="space-y-3">
-          {/* Membership Number — only for approved */}
           <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
             <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide">Membership Number</p>
             <p className="text-2xl font-bold text-orange-700 mt-0.5">{member.membership_number}</p>
           </div>
-          {/* Also show Form Number for reference */}
           {member.application_no && (
             <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
               <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Form Number</p>
