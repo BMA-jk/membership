@@ -93,6 +93,68 @@ const AsyncImage: React.FC<AsyncImageProps> = ({ label, path, bucket = 'member-f
   );
 };
 
+// ─── Reject Reason Modal ──────────────────────────────────────────────────────
+
+interface RejectModalProps {
+  member: Member;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+  busy: boolean;
+}
+
+const RejectModal: React.FC<RejectModalProps> = ({ member, onConfirm, onCancel, busy }) => {
+  const [reason, setReason] = useState('');
+  React.useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onCancel]);
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 flex flex-col gap-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-base font-bold text-slate-800">Reject Application</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{member.full_name}</p>
+          </div>
+          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">×</button>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+          <p className="text-xs text-red-700 font-medium">⚠️ A rejection email with your reason will be sent to the applicant.</p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-slate-600">Reason for rejection <span className="text-red-500">*</span></label>
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            rows={4}
+            placeholder="e.g. Photo is unclear. Aadhaar details are not legible. Please resubmit with proper documents."
+            className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
+            autoFocus
+          />
+          <p className="text-[11px] text-slate-400">This will be shown verbatim in the rejection email to the applicant.</p>
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(reason)}
+            disabled={busy || !reason.trim()}
+            className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+          >
+            {busy ? 'Rejecting…' : 'Confirm Reject & Send Email'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Form Modal ──────────────────────────────────────────────────────────────
 
 interface FormModalProps {
@@ -227,6 +289,8 @@ export const AdminPanel: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState('');
 
+  const [rejectTarget, setRejectTarget] = useState<Member | null>(null);
+
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [createMsg, setCreateMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -254,7 +318,6 @@ export const AdminPanel: React.FC = () => {
       .select('id,full_name,email,area_district,status,membership_number,application_no,created_at')
       .eq('status', status)
       .order('created_at', { ascending: false });
-    // Discard result if a newer fetch was started
     if (token !== fetchRef.current) return;
     if (!error) setMembers(data as Member[]);
     setTabLoading(false);
@@ -282,12 +345,12 @@ export const AdminPanel: React.FC = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke('approve-member', {
-        body: { member_id: member.id },
+        body: { member_id: member.id, action: 'approve' },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      setActionMsg({ type: 'ok', text: `Approved! Membership: ${data.membership_number}` });
+      setActionMsg({ type: 'ok', text: `✅ Approved! Membership No.: ${data.membership_number} — Congratulations email sent.` });
       await loadMembers(activeTab as MemberStatus);
       setFormMember(null);
     } catch (err: any) {
@@ -295,27 +358,25 @@ export const AdminPanel: React.FC = () => {
     } finally { setBusy(false); }
   };
 
-  const handleReject = async (member: Member) => {
-    const confirmed = window.confirm(
-      '⚠️ Warning: Rejecting this application will permanently delete all submitted data and uploaded documents. This action cannot be undone.\n\nAre you sure you want to reject and delete this application?'
-    );
-    if (!confirmed) return;
+  // Step 1: open the RejectModal to collect reason
+  const handleReject = (member: Member) => {
+    setRejectTarget(member);
+  };
+
+  // Step 2: called when admin confirms with a typed reason
+  const handleRejectConfirm = async (reason: string) => {
+    if (!rejectTarget) return;
     setBusy(true); setActionMsg(null);
     try {
-      // Delete uploaded storage files
-      const filesToDelete = [
-        member.photo_url,
-        member.aadhaar_front_url,
-        member.aadhaar_back_url,
-        member.signature_url,
-      ].filter(Boolean) as string[];
-      if (filesToDelete.length > 0) {
-        await supabase.storage.from('member-files').remove(filesToDelete);
-      }
-      // Delete DB record
-      const { error } = await supabase.from('members').delete().eq('id', member.id);
-      if (error) throw error;
-      setActionMsg({ type: 'ok', text: 'Application rejected and permanently deleted.' });
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('approve-member', {
+        body: { member_id: rejectTarget.id, action: 'reject', rejection_reason: reason },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setActionMsg({ type: 'ok', text: '❌ Application rejected — notification email sent to applicant.' });
+      setRejectTarget(null);
       await loadMembers(activeTab as MemberStatus);
       setFormMember(null);
     } catch (err: any) {
@@ -398,6 +459,16 @@ export const AdminPanel: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
+
+      {/* Reject Reason Modal — renders above FormModal */}
+      {rejectTarget && (
+        <RejectModal
+          member={rejectTarget}
+          onConfirm={handleRejectConfirm}
+          onCancel={() => setRejectTarget(null)}
+          busy={busy}
+        />
+      )}
 
       {/* Form Modal */}
       {formMember && (
@@ -537,7 +608,6 @@ export const AdminPanel: React.FC = () => {
                         <button
                           onClick={async () => {
                             setActionMsg(null);
-                            // Fetch full record (incl. images) only when needed
                             const { data } = await supabase.from('members').select('*').eq('id', m.id).single();
                             if (data) setFormMember(data as Member);
                           }}
