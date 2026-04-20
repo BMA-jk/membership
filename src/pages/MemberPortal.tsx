@@ -159,7 +159,7 @@ export const MemberPortal: React.FC = () => {
     <PageShell title="Member Login">
       <div className="max-w-sm">
         <p className="text-sm text-slate-600 mb-4">
-          Enter your registered email to receive a 6-digit OTP code.
+          Enter your registered email to receive an 8-digit OTP code.
         </p>
         <form onSubmit={handleSendOtp} className="space-y-4">
           <div>
@@ -191,7 +191,7 @@ export const MemberPortal: React.FC = () => {
     <PageShell title="Enter OTP">
       <div className="max-w-sm">
         <p className="text-sm text-slate-600 mb-1">
-          A 6-digit code was sent to:
+          An 8-digit code was sent to:
         </p>
         <p className="text-sm font-semibold text-orange-600 mb-4">{email}</p>
         <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -200,19 +200,19 @@ export const MemberPortal: React.FC = () => {
             <input
               type="text"
               inputMode="numeric"
-              pattern="[0-9]{6}"
-              maxLength={6}
+              pattern="[0-9]{8}"
+              maxLength={8}
               required
               value={otp}
               onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-center tracking-[0.5em] font-mono text-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="000000"
+              placeholder="00000000"
             />
           </div>
           {errorMsg && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{errorMsg}</p>}
           <button
             type="submit"
-            disabled={verifying || otp.length !== 6}
+            disabled={verifying || otp.length !== 8}
             className="w-full py-2.5 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {verifying ? 'Verifying…' : 'Verify OTP'}
