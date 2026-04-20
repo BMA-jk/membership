@@ -5,8 +5,6 @@ import { uploadCompressedImage } from '../utils/uploadCompressedImage';
 
 const MAX_KB = 50;
 const PHOTO_MAX_KB = 100;
-const MAX_BYTES = MAX_KB * 1024;
-const PHOTO_MAX_BYTES = PHOTO_MAX_KB * 1024;
 
 function validateFile(file: File | null, label: string, maxKb: number = MAX_KB): string | null {
   if (!file) return null;
@@ -60,11 +58,10 @@ const ImageThumb: React.FC<{ src: string; label: string; variant?: 'square' | 's
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  // Dimensions and fit per variant
   const styles: Record<string, React.CSSProperties> = {
-    square:   { width: 80,  height: 100, objectFit: 'cover',    background: 'transparent' },   // portrait — shows full face
-    aadhaar:  { width: 180, height: 100, objectFit: 'contain',  background: '#f1f5f9' },        // landscape — full card visible
-    signature:{ width: 200, height: 60,  objectFit: 'contain',  background: '#f8fafc' },        // wide strip — full sig visible
+    square:   { width: 80,  height: 100, objectFit: 'cover',    background: 'transparent' },
+    aadhaar:  { width: 180, height: 100, objectFit: 'contain',  background: '#f1f5f9' },
+    signature:{ width: 200, height: 60,  objectFit: 'contain',  background: '#f8fafc' },
   };
   const s = styles[variant];
 
@@ -154,14 +151,16 @@ export const PublicRegistration: React.FC = () => {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  // ✅ Fixed: accepts maxKb and passes it to validateFile
   const handleFile = (
     file: File | null, label: string,
     setter: (f: File | null) => void,
     errorSetter: (e: string | null) => void,
+    maxKb: number = MAX_KB,
   ) => {
     errorSetter(null);
     if (!file) { setter(null); return; }
-    const err = validateFile(file, label);
+    const err = validateFile(file, label, maxKb);
     if (err) { errorSetter(err); setter(null); return; }
     setter(file);
   };
@@ -184,10 +183,11 @@ export const PublicRegistration: React.FC = () => {
       const memberId = crypto.randomUUID();
       const basePath = `members/${memberId}`;
 
-      const photoPath        = await uploadCompressedImage(photo,        `${basePath}/photo.${photo.name.split('.').pop()}`);
-      const aadhaarFrontPath = await uploadCompressedImage(aadhaarFront, `${basePath}/aadhaar-front.${aadhaarFront.name.split('.').pop()}`);
-      const aadhaarBackPath  = await uploadCompressedImage(aadhaarBack,  `${basePath}/aadhaar-back.${aadhaarBack.name.split('.').pop()}`);
-      const sigPath          = await uploadCompressedImage(signature,    `${basePath}/signature.${signature.name.split('.').pop()}`);
+      // ✅ Fixed: pass PHOTO_MAX_KB to uploadCompressedImage for photo
+      const photoPath        = await uploadCompressedImage(photo,        `${basePath}/photo.${photo.name.split('.').pop()}`,        PHOTO_MAX_KB);
+      const aadhaarFrontPath = await uploadCompressedImage(aadhaarFront, `${basePath}/aadhaar-front.${aadhaarFront.name.split('.').pop()}`, MAX_KB);
+      const aadhaarBackPath  = await uploadCompressedImage(aadhaarBack,  `${basePath}/aadhaar-back.${aadhaarBack.name.split('.').pop()}`,  MAX_KB);
+      const sigPath          = await uploadCompressedImage(signature,    `${basePath}/signature.${signature.name.split('.').pop()}`,    MAX_KB);
 
       const { data: inserted, error } = await supabase
         .from('members')
@@ -276,7 +276,6 @@ export const PublicRegistration: React.FC = () => {
             rows={3}
           />
         </div>
-        {/* Image upload instructions */}
         <div style={{
           background: '#fff7ed',
           border: '1px solid #fdba74',
@@ -298,7 +297,7 @@ export const PublicRegistration: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <FileInput label="Photo" error={photoError} maxKbLabel={PHOTO_MAX_KB}
+          <FileInput label="Photo" error={photoError} maxKbLabel={PHOTO_MAX_KB} variant="square"
             onChange={f => handleFile(f, 'Photo', setPhoto, setPhotoError, PHOTO_MAX_KB)} />
           <FileInput label="Aadhaar Front" error={aadhaarFrontError} variant="aadhaar"
             onChange={f => handleFile(f, 'Aadhaar Front', setAadhaarFront, setAadhaarFrontError)} />
