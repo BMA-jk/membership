@@ -4,8 +4,12 @@ import { PageShell } from '../components/PageShell';
 import { IDCard } from '../components/IDCard';
 import { Member } from '../types';
 
+const LAST_EMAIL_KEY = 'mp_last_email';
+
 export const MemberPortal: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    try { return localStorage.getItem(LAST_EMAIL_KEY) || ''; } catch { return ''; }
+  });
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(true);
@@ -33,6 +37,10 @@ export const MemberPortal: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         setUserId(session.user.id);
+        // Save email to localStorage so it pre-fills next visit
+        try {
+          if (session.user.email) localStorage.setItem(LAST_EMAIL_KEY, session.user.email);
+        } catch { /* ignore */ }
         setLoading(true);
         await loadMember(session.user.id, session.user.email || undefined);
         setLoading(false);
@@ -112,6 +120,8 @@ export const MemberPortal: React.FC = () => {
         email: email.trim().toLowerCase(),
       });
       if (otpError) throw otpError;
+      // Save email to localStorage as soon as OTP is successfully sent
+      try { localStorage.setItem(LAST_EMAIL_KEY, email.trim().toLowerCase()); } catch { /* ignore */ }
       setOtpSent(true);
     } catch (err: any) {
       setErrorMsg(err.message ?? 'Could not send OTP. Please try again.');
@@ -149,6 +159,8 @@ export const MemberPortal: React.FC = () => {
     setRejoinDone(false);
     setRejoinMessage('');
     setRejoinError(null);
+    // Clear saved email on explicit logout
+    try { localStorage.removeItem(LAST_EMAIL_KEY); } catch { /* ignore */ }
   };
 
   const handleRejoinSubmit = async (e: React.FormEvent) => {
