@@ -22,7 +22,7 @@ const Badge: React.FC<{ status: MemberStatus }> = ({ status }) => {
 const Field: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
   <div className="flex flex-col gap-0.5">
     <span className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">{label}</span>
-    <span className="text-sm text-slate-800">{value || '—'}</span>
+    <span className="text-sm text-slate-800">{value || '\u2014'}</span>
   </div>
 );
 
@@ -43,7 +43,7 @@ const AdminLightbox: React.FC<{ src: string; label: string; onClose: () => void 
         <button
           onClick={onClose}
           style={{ position: 'absolute', top: -48, right: 0, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '50%', width: 38, height: 38, fontSize: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >×</button>
+        >\u00d7</button>
         <img src={src} alt={label} style={{ maxWidth: '100%', maxHeight: '82dvh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)' }} />
         <p style={{ marginTop: 14, color: '#e5e7eb', fontSize: 13, letterSpacing: '0.03em' }}>{label}</p>
       </div>
@@ -87,7 +87,7 @@ const AsyncImage: React.FC<AsyncImageProps> = ({ label, path, bucket = 'member-f
               background: 'rgba(0,0,0,0.35)',
             }}>
               <span style={{ color: '#fff', fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(0,0,0,0.5)', padding: '4px 12px', borderRadius: 20 }}>
-                🔍 View Full
+                \ud83d\udd0d View Full
               </span>
             </div>
           </div>
@@ -125,10 +125,10 @@ const RejectModal: React.FC<RejectModalProps> = ({ member, onConfirm, onCancel, 
             <h3 className="text-base font-bold text-slate-800">Reject Application</h3>
             <p className="text-xs text-slate-500 mt-0.5">{member.full_name}</p>
           </div>
-          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">×</button>
+          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">\u00d7</button>
         </div>
         <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-          <p className="text-xs text-red-700 font-medium">⚠️ A rejection email with your reason will be sent to the applicant.</p>
+          <p className="text-xs text-red-700 font-medium">\u26a0\ufe0f A rejection email with your reason will be sent to the applicant.</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-slate-600">Reason for rejection <span className="text-red-500">*</span></label>
@@ -145,7 +145,7 @@ const RejectModal: React.FC<RejectModalProps> = ({ member, onConfirm, onCancel, 
         <div className="flex gap-3 pt-1">
           <button onClick={onCancel} disabled={busy} className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50">Cancel</button>
           <button onClick={() => onConfirm(reason)} disabled={busy || !reason.trim()} className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors">
-            {busy ? 'Rejecting…' : 'Confirm Reject & Send Email'}
+            {busy ? 'Rejecting\u2026' : 'Confirm Reject & Send Email'}
           </button>
         </div>
       </div>
@@ -175,12 +175,12 @@ const MarkLeftModal: React.FC<MarkLeftModalProps> = ({ member, onConfirm, onCanc
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-base font-bold text-slate-800">Mark as Former Member</h3>
-            <p className="text-xs text-slate-500 mt-0.5">{member.full_name} · {member.membership_number}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{member.full_name} \u00b7 {member.membership_number}</p>
           </div>
-          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">×</button>
+          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">\u00d7</button>
         </div>
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-          <p className="text-xs text-amber-800 font-medium">⚠️ The member will be moved to Former Members. Their membership number is retained permanently. An email notification will be sent.</p>
+          <p className="text-xs text-amber-800 font-medium">\u26a0\ufe0f The member will be moved to Former Members. Their membership number is retained permanently. An email notification will be sent.</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-slate-600">Reason for leaving <span className="text-red-500">*</span></label>
@@ -197,7 +197,7 @@ const MarkLeftModal: React.FC<MarkLeftModalProps> = ({ member, onConfirm, onCanc
         <div className="flex gap-3 pt-1">
           <button onClick={onCancel} disabled={busy} className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50">Cancel</button>
           <button onClick={() => onConfirm(reason)} disabled={busy || !reason.trim()} className="flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-50 transition-colors">
-            {busy ? 'Processing…' : 'Confirm & Notify'}
+            {busy ? 'Processing\u2026' : 'Confirm & Notify'}
           </button>
         </div>
       </div>
@@ -240,7 +240,7 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
             <h2 className="text-base font-bold text-slate-800">{member.full_name}</h2>
             <Badge status={member.status} />
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">×</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">\u00d7</button>
         </div>
 
         <div className="p-6 flex flex-col gap-6 overflow-y-auto">
@@ -253,7 +253,7 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
 
           {/* Admin: assign Designation */}
           <div className="bg-slate-50 rounded-xl p-4 flex flex-col gap-3">
-            <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Admin — Assign Designation</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Admin \u2014 Assign Designation</p>
             <div className="flex gap-2 items-end">
               <div className="flex flex-col flex-1">
                 <label className="text-xs font-medium text-slate-600 mb-1">Designation</label>
@@ -261,11 +261,11 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
                   value={designation}
                   onChange={e => { setDesignation(e.target.value); setSaveMsg(null); }}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="e.g. District President…"
+                  placeholder="e.g. District President\u2026"
                 />
               </div>
               <button onClick={handleSaveDesignation} disabled={saving} className="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-50">
-                {saving ? 'Saving…' : 'Save'}
+                {saving ? 'Saving\u2026' : 'Save'}
               </button>
             </div>
             {saveMsg && <p className="text-xs text-green-600">{saveMsg}</p>}
@@ -292,10 +292,10 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
           {member.status === 'pending' && (
             <div className="flex gap-3 pt-2 border-t border-slate-100">
               <button disabled={busy} onClick={() => onApprove(member)} className="flex-1 py-3 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors">
-                {busy ? 'Processing…' : '✓ Approve'}
+                {busy ? 'Processing\u2026' : '\u2713 Approve'}
               </button>
               <button disabled={busy} onClick={() => onReject(member)} className="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors">
-                ✕ Reject
+                \u2715 Reject
               </button>
             </div>
           )}
@@ -313,17 +313,20 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
           {member.status === 'left' && member.rejoin_request && (
             <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <p className="text-sm font-bold text-blue-800 mb-1">🔔 Rejoin Request Pending</p>
+                <p className="text-sm font-bold text-blue-800 mb-1">\ud83d\udd14 Rejoin Request Pending</p>
                 {member.rejoin_message && (
                   <p className="text-xs text-blue-700 bg-blue-100 rounded-lg px-3 py-2 mt-1">"{member.rejoin_message}"</p>
+                )}
+                {member.rejoin_requested_at && (
+                  <p className="text-[11px] text-blue-500 mt-2">Submitted: {member.rejoin_requested_at.slice(0, 10)}</p>
                 )}
               </div>
               <div className="flex gap-3">
                 <button disabled={busy} onClick={() => onRejoinApprove(member)} className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors">
-                  {busy ? 'Processing…' : '✓ Approve Rejoin'}
+                  {busy ? 'Processing\u2026' : '\u2713 Approve Rejoin'}
                 </button>
                 <button disabled={busy} onClick={() => onRejoinReject(member)} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-50 transition-colors">
-                  ✕ Decline
+                  \u2715 Decline
                 </button>
               </div>
             </div>
@@ -335,6 +338,9 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
   );
 };
 
+// ─── Tab type (extended with rejoin_requests) ────────────────────────────────
+type TabKey = MemberStatus | 'rejoin_requests' | 'create-admin';
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export const AdminPanel: React.FC = () => {
@@ -344,8 +350,9 @@ export const AdminPanel: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<MemberStatus | 'create-admin'>('pending');
+  const [activeTab, setActiveTab] = useState<TabKey>('pending');
   const [members, setMembers] = useState<Member[]>([]);
+  const [rejoinCount, setRejoinCount] = useState(0);
   const [tabLoading, setTabLoading] = useState(false);
   const [formMember, setFormMember] = useState<Member | null>(null);
   const [actionMsg, setActionMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -369,19 +376,40 @@ export const AdminPanel: React.FC = () => {
 
   const fetchRef = useRef<number>(0);
 
+  // Load rejoin count badge whenever admin is logged in
   useEffect(() => {
-    if (isAdmin && activeTab !== 'create-admin') loadMembers(activeTab as MemberStatus);
+    if (!isAdmin) return;
+    const loadRejoinCount = async () => {
+      const { count } = await supabase
+        .from('members')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'left')
+        .eq('rejoin_request', true);
+      setRejoinCount(count ?? 0);
+    };
+    loadRejoinCount();
+  }, [isAdmin, members]); // refresh count whenever members list changes
+
+  useEffect(() => {
+    if (isAdmin && activeTab !== 'create-admin') loadMembers(activeTab);
   }, [isAdmin, activeTab]);
 
-  const loadMembers = async (status: MemberStatus) => {
+  const loadMembers = async (tab: TabKey) => {
     const token = ++fetchRef.current;
     setMembers([]);
     setTabLoading(true);
-    const { data, error } = await supabase
+
+    let query = supabase
       .from('members')
-      .select('id,full_name,email,area_district,status,membership_number,application_no,created_at,left_at,left_reason,rejoin_request,rejoin_message')
-      .eq('status', status)
-      .order('created_at', { ascending: false });
+      .select('id,full_name,email,area_district,status,membership_number,application_no,created_at,left_at,left_reason,rejoin_request,rejoin_message,rejoin_requested_at');
+
+    if (tab === 'rejoin_requests') {
+      query = query.eq('status', 'left').eq('rejoin_request', true);
+    } else {
+      query = query.eq('status', tab as MemberStatus);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (token !== fetchRef.current) return;
     if (!error) setMembers(data as Member[]);
     setTabLoading(false);
@@ -414,8 +442,8 @@ export const AdminPanel: React.FC = () => {
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      setActionMsg({ type: 'ok', text: `✅ Approved! Membership No.: ${data.membership_number} — Congratulations email sent.` });
-      await loadMembers(activeTab as MemberStatus);
+      setActionMsg({ type: 'ok', text: `\u2705 Approved! Membership No.: ${data.membership_number} \u2014 Congratulations email sent.` });
+      await loadMembers(activeTab);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Approval failed' });
@@ -435,9 +463,9 @@ export const AdminPanel: React.FC = () => {
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      setActionMsg({ type: 'ok', text: '❌ Application rejected — notification email sent to applicant.' });
+      setActionMsg({ type: 'ok', text: '\u274c Application rejected \u2014 notification email sent to applicant.' });
       setRejectTarget(null);
-      await loadMembers(activeTab as MemberStatus);
+      await loadMembers(activeTab);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Rejection failed' });
@@ -457,9 +485,9 @@ export const AdminPanel: React.FC = () => {
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      setActionMsg({ type: 'ok', text: `✅ ${markLeftTarget.full_name} moved to Former Members. Notification email sent.` });
+      setActionMsg({ type: 'ok', text: `\u2705 ${markLeftTarget.full_name} moved to Former Members. Notification email sent.` });
       setMarkLeftTarget(null);
-      await loadMembers(activeTab as MemberStatus);
+      await loadMembers(activeTab);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Failed' });
@@ -476,8 +504,8 @@ export const AdminPanel: React.FC = () => {
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      setActionMsg({ type: 'ok', text: `✅ ${member.full_name} has been re-approved. Welcome back email sent.` });
-      await loadMembers(activeTab as MemberStatus);
+      setActionMsg({ type: 'ok', text: `\u2705 ${member.full_name} has been re-approved. Welcome back email sent.` });
+      await loadMembers(activeTab);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Failed' });
@@ -495,7 +523,7 @@ export const AdminPanel: React.FC = () => {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setActionMsg({ type: 'ok', text: `Rejoin request from ${member.full_name} has been declined.` });
-      await loadMembers(activeTab as MemberStatus);
+      await loadMembers(activeTab);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Failed' });
@@ -519,11 +547,12 @@ export const AdminPanel: React.FC = () => {
     } finally { setCreateBusy(false); }
   };
 
-  const TABS: { key: MemberStatus | 'create-admin'; label: string }[] = [
+  const TABS: { key: TabKey; label: string }[] = [
     { key: 'pending', label: 'Pending' },
     { key: 'approved', label: 'Approved' },
     { key: 'rejected', label: 'Rejected' },
     { key: 'left', label: 'Former Members' },
+    { key: 'rejoin_requests', label: '\ud83d\udd14 Rejoin Requests' },
     { key: 'create-admin', label: '+ New Admin' },
   ];
 
@@ -538,7 +567,7 @@ export const AdminPanel: React.FC = () => {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
         </svg>
-        Loading…
+        Loading\u2026
       </div>
     </div>
   );
@@ -626,17 +655,30 @@ export const AdminPanel: React.FC = () => {
         <div className="flex items-center gap-2 flex-wrap">
           {TABS.map(t => (
             <button key={t.key} onClick={() => { setActiveTab(t.key); setFormMember(null); setActionMsg(null); setSearch(''); }}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
+              className={`relative px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
                 activeTab === t.key
-                  ? t.key === 'create-admin' ? 'bg-slate-800 text-white border-slate-800' : 'bg-orange-600 text-white border-orange-600'
+                  ? t.key === 'create-admin' ? 'bg-slate-800 text-white border-slate-800'
+                    : t.key === 'rejoin_requests' ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-orange-600 text-white border-orange-600'
                   : 'bg-white text-slate-600 border-slate-300 hover:border-orange-400'
               }`}>
               {t.label}
-              {t.key !== 'create-admin' && (
+              {/* Count badge */}
+              {t.key === 'rejoin_requests' && rejoinCount > 0 && activeTab !== 'rejoin_requests' && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                  {rejoinCount}
+                </span>
+              )}
+              {t.key !== 'create-admin' && t.key !== 'rejoin_requests' && (
                 <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
                   activeTab === t.key ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
                 }`}>
                   {activeTab === t.key ? filtered.length : ''}
+                </span>
+              )}
+              {t.key === 'rejoin_requests' && activeTab === t.key && (
+                <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-blue-500 text-white">
+                  {filtered.length}
                 </span>
               )}
             </button>
@@ -671,7 +713,7 @@ export const AdminPanel: React.FC = () => {
               )}
               <button type="submit" disabled={createBusy}
                 className="w-full py-2.5 rounded-lg bg-slate-800 text-white text-sm font-semibold hover:bg-slate-900 disabled:opacity-50 transition-colors">
-                {createBusy ? 'Creating…' : 'Create Admin'}
+                {createBusy ? 'Creating\u2026' : 'Create Admin'}
               </button>
             </form>
           </div>
@@ -683,7 +725,7 @@ export const AdminPanel: React.FC = () => {
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
-                <input type="text" placeholder="Search by name, email or district…"
+                <input type="text" placeholder="Search by name, email or district\u2026"
                   value={search} onChange={e => setSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
               </div>
@@ -696,7 +738,9 @@ export const AdminPanel: React.FC = () => {
                   <th className="px-5 py-3 text-left font-semibold">Name</th>
                   <th className="px-5 py-3 text-left font-semibold hidden md:table-cell">District</th>
                   <th className="px-5 py-3 text-left font-semibold hidden lg:table-cell">
-                    {activeTab === 'left' ? 'Left On' : 'Applied'}
+                    {activeTab === 'left' ? 'Left On'
+                      : activeTab === 'rejoin_requests' ? 'Requested On'
+                      : 'Applied'}
                   </th>
                   <th className="px-5 py-3 text-left font-semibold hidden lg:table-cell">Membership #</th>
                   <th className="px-5 py-3 text-right font-semibold">Action</th>
@@ -711,24 +755,31 @@ export const AdminPanel: React.FC = () => {
                           <p className="font-medium text-slate-700">{m.full_name}</p>
                           <p className="text-xs text-slate-400 font-mono">{m.application_no ?? m.id.slice(0, 8).toUpperCase()}</p>
                         </td>
-                        <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '—'}</td>
+                        <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '\u2014'}</td>
                         <td className="px-5 py-3 hidden lg:table-cell" colSpan={2} />
                       </>
-                    ) : activeTab === 'left' ? (
+                    ) : (activeTab === 'left' || activeTab === 'rejoin_requests') ? (
                       <>
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-slate-700">{m.full_name}</p>
-                            {m.rejoin_request && (
+                            {m.rejoin_request && activeTab !== 'rejoin_requests' && (
                               <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-full">REJOIN REQ</span>
                             )}
                           </div>
                           <p className="text-xs text-slate-400 font-mono">{m.application_no ?? m.id.slice(0, 8).toUpperCase()}</p>
+                          {activeTab === 'rejoin_requests' && m.rejoin_message && (
+                            <p className="text-xs text-blue-600 italic mt-0.5 truncate max-w-[220px]">"{m.rejoin_message}"</p>
+                          )}
                         </td>
-                        <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '—'}</td>
-                        <td className="px-5 py-3 text-slate-500 hidden lg:table-cell text-xs">{(m.left_at || '').slice(0, 10) || '—'}</td>
+                        <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '\u2014'}</td>
+                        <td className="px-5 py-3 text-slate-500 hidden lg:table-cell text-xs">
+                          {activeTab === 'rejoin_requests'
+                            ? (m.rejoin_requested_at || '').slice(0, 10) || '\u2014'
+                            : (m.left_at || '').slice(0, 10) || '\u2014'}
+                        </td>
                         <td className="px-5 py-3 hidden lg:table-cell">
-                          <span className="text-orange-600 font-semibold text-xs bg-orange-50 px-2 py-0.5 rounded-full">{m.membership_number || '—'}</span>
+                          <span className="text-orange-600 font-semibold text-xs bg-orange-50 px-2 py-0.5 rounded-full">{m.membership_number || '\u2014'}</span>
                         </td>
                       </>
                     ) : (
@@ -737,12 +788,12 @@ export const AdminPanel: React.FC = () => {
                           <p className="font-medium text-slate-800">{m.full_name}</p>
                           <p className="text-xs text-slate-400">{m.email}</p>
                         </td>
-                        <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '—'}</td>
+                        <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '\u2014'}</td>
                         <td className="px-5 py-3 text-slate-500 hidden lg:table-cell">{(m.created_at || '').slice(0, 10)}</td>
                         <td className="px-5 py-3 hidden lg:table-cell">
                           {m.membership_number
                             ? <span className="text-orange-600 font-semibold text-xs bg-orange-50 px-2 py-0.5 rounded-full">{m.membership_number}</span>
-                            : <span className="text-slate-400">—</span>}
+                            : <span className="text-slate-400">\u2014</span>}
                         </td>
                       </>
                     )}
@@ -776,7 +827,9 @@ export const AdminPanel: React.FC = () => {
                 )}
                 {!tabLoading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-5 py-12 text-center text-slate-400 text-sm">No {activeTab} members found.</td>
+                    <td colSpan={5} className="px-5 py-12 text-center text-slate-400 text-sm">
+                      {activeTab === 'rejoin_requests' ? 'No pending rejoin requests.' : `No ${activeTab} members found.`}
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -785,7 +838,7 @@ export const AdminPanel: React.FC = () => {
         )}
       </div>
 
-      <footer className="py-4 text-center text-xs text-slate-400">© {new Date().getFullYear()} Bhartiya Modi Army J&K</footer>
+      <footer className="py-4 text-center text-xs text-slate-400">\u00a9 {new Date().getFullYear()} Bhartiya Modi Army J&K</footer>
     </div>
   );
 };
