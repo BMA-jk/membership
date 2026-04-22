@@ -7,8 +7,16 @@ import { OfficialForm } from '../components/OfficialForm';
 // ─── Tiny reusable pieces ────────────────────────────────────────────────────
 
 const Badge: React.FC<{ status: MemberStatus }> = ({ status }) => {
-  const map = { pending: 'bg-yellow-100 text-yellow-800', approved: 'bg-green-100 text-green-800', rejected: 'bg-red-100 text-red-800' };
-  return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${map[status]}`}>{status.toUpperCase()}</span>;
+  const map: Record<string, string> = {
+    pending: 'bg-yellow-100 text-yellow-800',
+    approved: 'bg-green-100 text-green-800',
+    rejected: 'bg-red-100 text-red-800',
+    left: 'bg-slate-200 text-slate-700',
+  };
+  const label: Record<string, string> = {
+    pending: 'PENDING', approved: 'APPROVED', rejected: 'REJECTED', left: 'FORMER MEMBER',
+  };
+  return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${map[status] ?? 'bg-slate-100 text-slate-600'}`}>{label[status] ?? status.toUpperCase()}</span>;
 };
 
 const Field: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
@@ -135,19 +143,61 @@ const RejectModal: React.FC<RejectModalProps> = ({ member, onConfirm, onCancel, 
           <p className="text-[11px] text-slate-400">This will be shown verbatim in the rejection email to the applicant.</p>
         </div>
         <div className="flex gap-3 pt-1">
-          <button
-            onClick={onCancel}
-            disabled={busy}
-            className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onConfirm(reason)}
-            disabled={busy || !reason.trim()}
-            className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
-          >
+          <button onClick={onCancel} disabled={busy} className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+          <button onClick={() => onConfirm(reason)} disabled={busy || !reason.trim()} className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors">
             {busy ? 'Rejecting…' : 'Confirm Reject & Send Email'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Mark Left Modal ──────────────────────────────────────────────────────────
+
+interface MarkLeftModalProps {
+  member: Member;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+  busy: boolean;
+}
+
+const MarkLeftModal: React.FC<MarkLeftModalProps> = ({ member, onConfirm, onCancel, busy }) => {
+  const [reason, setReason] = useState('');
+  React.useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onCancel]);
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 flex flex-col gap-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-base font-bold text-slate-800">Mark as Former Member</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{member.full_name} · {member.membership_number}</p>
+          </div>
+          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">×</button>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <p className="text-xs text-amber-800 font-medium">⚠️ The member will be moved to Former Members. Their membership number is retained permanently. An email notification will be sent.</p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-slate-600">Reason for leaving <span className="text-red-500">*</span></label>
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            rows={4}
+            placeholder="e.g. Relocated outside J&K. Personal reasons. Voluntary resignation."
+            className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
+            autoFocus
+          />
+          <p className="text-[11px] text-slate-400">This reason will be shown to the member in their portal and in the notification email.</p>
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button onClick={onCancel} disabled={busy} className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+          <button onClick={() => onConfirm(reason)} disabled={busy || !reason.trim()} className="flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-50 transition-colors">
+            {busy ? 'Processing…' : 'Confirm & Notify'}
           </button>
         </div>
       </div>
@@ -162,10 +212,13 @@ interface FormModalProps {
   onClose: () => void;
   onApprove: (m: Member) => void;
   onReject: (m: Member) => void;
+  onMarkLeft: (m: Member) => void;
+  onRejoinApprove: (m: Member) => void;
+  onRejoinReject: (m: Member) => void;
   busy: boolean;
 }
 
-const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onReject, busy }) => {
+const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onReject, onMarkLeft, onRejoinApprove, onRejoinReject, busy }) => {
   const [designation, setDesignation] = useState(member.designation || '');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -183,19 +236,11 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col">
         {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl z-10">
-          <div>
-            <p className="font-bold text-slate-800 text-lg">{member.full_name}</p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <Badge status={member.status as MemberStatus} />
-              {member.status === 'pending'
-                ? <span className="text-xs text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-full">Membership No.: Not assigned yet</span>
-                : member.membership_number
-                  ? <span className="text-xs text-orange-600 font-semibold bg-orange-50 px-2 py-0.5 rounded-full">{member.membership_number}</span>
-                  : null
-              }
-            </div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-base font-bold text-slate-800">{member.full_name}</h2>
+            <Badge status={member.status} />
           </div>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">×</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl">×</button>
         </div>
 
         <div className="p-6 flex flex-col gap-6 overflow-y-auto">
@@ -219,11 +264,7 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
                   placeholder="e.g. District President…"
                 />
               </div>
-              <button
-                onClick={handleSaveDesignation}
-                disabled={saving}
-                className="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
-              >
+              <button onClick={handleSaveDesignation} disabled={saving} className="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-50">
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -247,25 +288,47 @@ const FormModal: React.FC<FormModalProps> = ({ member, onClose, onApprove, onRej
             )}
           </div>
 
-          {/* Approve / Reject */}
+          {/* Approve / Reject — pending only */}
           {member.status === 'pending' && (
             <div className="flex gap-3 pt-2 border-t border-slate-100">
-              <button
-                disabled={busy}
-                onClick={() => onApprove(member)}
-                className="flex-1 py-3 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
-              >
+              <button disabled={busy} onClick={() => onApprove(member)} className="flex-1 py-3 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors">
                 {busy ? 'Processing…' : '✓ Approve'}
               </button>
-              <button
-                disabled={busy}
-                onClick={() => onReject(member)}
-                className="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
+              <button disabled={busy} onClick={() => onReject(member)} className="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors">
                 ✕ Reject
               </button>
             </div>
           )}
+
+          {/* Mark as Left — approved members only */}
+          {member.status === 'approved' && (
+            <div className="pt-2 border-t border-slate-100">
+              <button disabled={busy} onClick={() => onMarkLeft(member)} className="w-full py-3 rounded-xl bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors">
+                Mark as Former Member (Left Organisation)
+              </button>
+            </div>
+          )}
+
+          {/* Rejoin request — left members with pending rejoin */}
+          {member.status === 'left' && member.rejoin_request && (
+            <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <p className="text-sm font-bold text-blue-800 mb-1">🔔 Rejoin Request Pending</p>
+                {member.rejoin_message && (
+                  <p className="text-xs text-blue-700 bg-blue-100 rounded-lg px-3 py-2 mt-1">"{member.rejoin_message}"</p>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button disabled={busy} onClick={() => onRejoinApprove(member)} className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors">
+                  {busy ? 'Processing…' : '✓ Approve Rejoin'}
+                </button>
+                <button disabled={busy} onClick={() => onRejoinReject(member)} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-50 transition-colors">
+                  ✕ Decline
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
@@ -290,6 +353,7 @@ export const AdminPanel: React.FC = () => {
   const [search, setSearch] = useState('');
 
   const [rejectTarget, setRejectTarget] = useState<Member | null>(null);
+  const [markLeftTarget, setMarkLeftTarget] = useState<Member | null>(null);
 
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
@@ -315,7 +379,7 @@ export const AdminPanel: React.FC = () => {
     setTabLoading(true);
     const { data, error } = await supabase
       .from('members')
-      .select('id,full_name,email,area_district,status,membership_number,application_no,created_at')
+      .select('id,full_name,email,area_district,status,membership_number,application_no,created_at,left_at,left_reason,rejoin_request,rejoin_message')
       .eq('status', status)
       .order('created_at', { ascending: false });
     if (token !== fetchRef.current) return;
@@ -358,12 +422,8 @@ export const AdminPanel: React.FC = () => {
     } finally { setBusy(false); }
   };
 
-  // Step 1: open the RejectModal to collect reason
-  const handleReject = (member: Member) => {
-    setRejectTarget(member);
-  };
+  const handleReject = (member: Member) => setRejectTarget(member);
 
-  // Step 2: called when admin confirms with a typed reason
   const handleRejectConfirm = async (reason: string) => {
     if (!rejectTarget) return;
     setBusy(true); setActionMsg(null);
@@ -384,6 +444,64 @@ export const AdminPanel: React.FC = () => {
     } finally { setBusy(false); }
   };
 
+  const handleMarkLeft = (member: Member) => setMarkLeftTarget(member);
+
+  const handleMarkLeftConfirm = async (reason: string) => {
+    if (!markLeftTarget) return;
+    setBusy(true); setActionMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('approve-member', {
+        body: { member_id: markLeftTarget.id, action: 'mark_left', left_reason: reason },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setActionMsg({ type: 'ok', text: `✅ ${markLeftTarget.full_name} moved to Former Members. Notification email sent.` });
+      setMarkLeftTarget(null);
+      await loadMembers(activeTab as MemberStatus);
+      setFormMember(null);
+    } catch (err: any) {
+      setActionMsg({ type: 'err', text: err.message ?? 'Failed' });
+    } finally { setBusy(false); }
+  };
+
+  const handleRejoinApprove = async (member: Member) => {
+    setBusy(true); setActionMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('approve-member', {
+        body: { member_id: member.id, action: 'rejoin_approve' },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setActionMsg({ type: 'ok', text: `✅ ${member.full_name} has been re-approved. Welcome back email sent.` });
+      await loadMembers(activeTab as MemberStatus);
+      setFormMember(null);
+    } catch (err: any) {
+      setActionMsg({ type: 'err', text: err.message ?? 'Failed' });
+    } finally { setBusy(false); }
+  };
+
+  const handleRejoinReject = async (member: Member) => {
+    setBusy(true); setActionMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('approve-member', {
+        body: { member_id: member.id, action: 'rejoin_reject' },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setActionMsg({ type: 'ok', text: `Rejoin request from ${member.full_name} has been declined.` });
+      await loadMembers(activeTab as MemberStatus);
+      setFormMember(null);
+    } catch (err: any) {
+      setActionMsg({ type: 'err', text: err.message ?? 'Failed' });
+    } finally { setBusy(false); }
+  };
+
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault(); setCreateMsg(null); setCreateBusy(true);
     try {
@@ -397,62 +515,55 @@ export const AdminPanel: React.FC = () => {
       setCreateMsg({ type: 'ok', text: `Admin created: ${newAdminEmail}` });
       setNewAdminEmail(''); setNewAdminPassword('');
     } catch (err: any) {
-      setCreateMsg({ type: 'err', text: err.message ?? 'Failed' });
+      setCreateMsg({ type: 'err', text: err.message ?? 'Failed to create admin' });
     } finally { setCreateBusy(false); }
   };
-
-  const filtered = members.filter(m =>
-    m.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    m.email.toLowerCase().includes(search.toLowerCase()) ||
-    (m.area_district ?? '').toLowerCase().includes(search.toLowerCase())
-  );
 
   const TABS: { key: MemberStatus | 'create-admin'; label: string }[] = [
     { key: 'pending', label: 'Pending' },
     { key: 'approved', label: 'Approved' },
     { key: 'rejected', label: 'Rejected' },
+    { key: 'left', label: 'Former Members' },
     { key: 'create-admin', label: '+ New Admin' },
   ];
 
+  const filtered = members.filter(m =>
+    [m.full_name, m.email, m.area_district].some(v => v?.toLowerCase().includes(search.toLowerCase()))
+  );
+
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <p className="text-slate-500 text-sm">Loading…</p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <div className="flex items-center gap-2 text-sm text-slate-500">
+        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+        </svg>
+        Loading…
+      </div>
     </div>
   );
 
   if (!isAdmin) return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-orange-600 text-white py-3 shadow">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+      <div className="bg-white rounded-2xl shadow-lg w-full max-w-sm p-8">
+        <div className="mb-6 text-center">
+          <p className="text-lg font-bold text-slate-800">Admin Login</p>
+          <p className="text-xs text-slate-500 mt-1">Bhartiya Modi Army J&K</p>
+        </div>
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <p className="text-base font-bold tracking-wide">Bhartiya Modi Army J&K</p>
-            <p className="text-[11px] uppercase tracking-widest opacity-80">Nation First • Modi Forever</p>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
           </div>
-          <nav className="flex gap-5 text-sm">
-            <Link to="/" className="hover:underline">Apply</Link>
-            <Link to="/member" className="hover:underline">Member Portal</Link>
-          </nav>
-        </div>
-      </header>
-      <div className="flex-1 flex items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-1">Admin Login</h2>
-          <p className="text-sm text-slate-500 mb-6">Restricted to authorised personnel only.</p>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Email</label>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-              <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
-            </div>
-            {loginError && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{loginError}</p>}
-            <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors">Login</button>
-          </form>
-        </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+            <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+          </div>
+          {loginError && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{loginError}</p>}
+          <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors">Login</button>
+        </form>
       </div>
     </div>
   );
@@ -460,12 +571,22 @@ export const AdminPanel: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
 
-      {/* Reject Reason Modal — renders above FormModal */}
+      {/* Reject Reason Modal */}
       {rejectTarget && (
         <RejectModal
           member={rejectTarget}
           onConfirm={handleRejectConfirm}
           onCancel={() => setRejectTarget(null)}
+          busy={busy}
+        />
+      )}
+
+      {/* Mark Left Modal */}
+      {markLeftTarget && (
+        <MarkLeftModal
+          member={markLeftTarget}
+          onConfirm={handleMarkLeftConfirm}
+          onCancel={() => setMarkLeftTarget(null)}
           busy={busy}
         />
       )}
@@ -477,6 +598,9 @@ export const AdminPanel: React.FC = () => {
           onClose={() => { setFormMember(null); setActionMsg(null); }}
           onApprove={handleApprove}
           onReject={handleReject}
+          onMarkLeft={handleMarkLeft}
+          onRejoinApprove={handleRejoinApprove}
+          onRejoinReject={handleRejoinReject}
           busy={busy}
         />
       )}
@@ -571,7 +695,9 @@ export const AdminPanel: React.FC = () => {
                 <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-5 py-3 text-left font-semibold">Name</th>
                   <th className="px-5 py-3 text-left font-semibold hidden md:table-cell">District</th>
-                  <th className="px-5 py-3 text-left font-semibold hidden lg:table-cell">Applied</th>
+                  <th className="px-5 py-3 text-left font-semibold hidden lg:table-cell">
+                    {activeTab === 'left' ? 'Left On' : 'Applied'}
+                  </th>
                   <th className="px-5 py-3 text-left font-semibold hidden lg:table-cell">Membership #</th>
                   <th className="px-5 py-3 text-right font-semibold">Action</th>
                 </tr>
@@ -579,7 +705,7 @@ export const AdminPanel: React.FC = () => {
               <tbody>
                 {filtered.map(m => (
                   <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    {activeTab === 'rejected' ? (
+                    {(activeTab === 'rejected') ? (
                       <>
                         <td className="px-5 py-3">
                           <p className="font-medium text-slate-700">{m.full_name}</p>
@@ -587,6 +713,23 @@ export const AdminPanel: React.FC = () => {
                         </td>
                         <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '—'}</td>
                         <td className="px-5 py-3 hidden lg:table-cell" colSpan={2} />
+                      </>
+                    ) : activeTab === 'left' ? (
+                      <>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-slate-700">{m.full_name}</p>
+                            {m.rejoin_request && (
+                              <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-full">REJOIN REQ</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 font-mono">{m.application_no ?? m.id.slice(0, 8).toUpperCase()}</p>
+                        </td>
+                        <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{m.area_district || '—'}</td>
+                        <td className="px-5 py-3 text-slate-500 hidden lg:table-cell text-xs">{(m.left_at || '').slice(0, 10) || '—'}</td>
+                        <td className="px-5 py-3 hidden lg:table-cell">
+                          <span className="text-orange-600 font-semibold text-xs bg-orange-50 px-2 py-0.5 rounded-full">{m.membership_number || '—'}</span>
+                        </td>
                       </>
                     ) : (
                       <>
@@ -633,7 +776,7 @@ export const AdminPanel: React.FC = () => {
                 )}
                 {!tabLoading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-5 py-12 text-center text-slate-400 text-sm">No {activeTab} applications.</td>
+                    <td colSpan={5} className="px-5 py-12 text-center text-slate-400 text-sm">No {activeTab} members found.</td>
                   </tr>
                 )}
               </tbody>
