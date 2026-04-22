@@ -15,6 +15,12 @@ export const MemberPortal: React.FC = () => {
   const [checking, setChecking] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
+  // Rejoin state
+  const [rejoinMessage, setRejoinMessage] = useState('');
+  const [rejoinSubmitting, setRejoinSubmitting] = useState(false);
+  const [rejoinDone, setRejoinDone] = useState(false);
+  const [rejoinError, setRejoinError] = useState<string | null>(null);
+
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -77,7 +83,6 @@ export const MemberPortal: React.FC = () => {
     setErrorMsg(null);
     setChecking(true);
     try {
-      // First validate the member exists and is approved
       const { data: memberData, error: memberError } = await supabase
         .from('members')
         .select('status, full_name')
@@ -98,8 +103,7 @@ export const MemberPortal: React.FC = () => {
         setErrorMsg('Your membership application was not approved.');
         return;
       }
-
-      // approved — send OTP (no shouldCreateUser restriction so first-time auth users work)
+      // approved OR left — allow login
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
       });
@@ -123,7 +127,6 @@ export const MemberPortal: React.FC = () => {
         type: 'email',
       });
       if (error) throw error;
-      // onAuthStateChange will handle loading the member
     } catch (err: any) {
       setErrorMsg(err.message ?? 'Invalid or expired OTP. Please try again.');
     } finally {
@@ -139,6 +142,33 @@ export const MemberPortal: React.FC = () => {
     setOtpSent(false);
     setOtp('');
     setEmail('');
+    setRejoinDone(false);
+    setRejoinMessage('');
+    setRejoinError(null);
+  };
+
+  const handleRejoinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!member) return;
+    setRejoinSubmitting(true);
+    setRejoinError(null);
+    try {
+      const { error } = await supabase
+        .from('members')
+        .update({
+          rejoin_request: true,
+          rejoin_message: rejoinMessage.trim() || null,
+          rejoin_requested_at: new Date().toISOString(),
+        })
+        .eq('id', member.id);
+      if (error) throw error;
+      setRejoinDone(true);
+      setMember(prev => prev ? { ...prev, rejoin_request: true, rejoin_message: rejoinMessage.trim() || null } : prev);
+    } catch (err: any) {
+      setRejoinError(err.message ?? 'Failed to submit request. Please try again.');
+    } finally {
+      setRejoinSubmitting(false);
+    }
   };
 
   // ── Loading
@@ -251,8 +281,7 @@ export const MemberPortal: React.FC = () => {
           <div className="flex items-start gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center shrink-0 mt-0.5">
               <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 6v6l4 2"/>
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
               </svg>
             </div>
             <div>
@@ -302,6 +331,131 @@ export const MemberPortal: React.FC = () => {
             <p className="text-xs text-red-700 bg-red-100 rounded-lg px-3 py-2 mt-2">Reason: {member.rejection_reason}</p>
           )}
         </div>
+        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">
+          Logout
+        </button>
+      </div>
+    </PageShell>
+  );
+
+  // ── Former Member (left) state
+  if (member.status === 'left') return (
+    <PageShell title="Member Portal">
+      <div className="max-w-lg space-y-5">
+
+        {/* Former member banner */}
+        <div className="bg-slate-100 border border-slate-300 rounded-2xl px-5 py-5">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-slate-300 flex items-center justify-center shrink-0 mt-0.5">
+              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-bold text-slate-700">Former Member</p>
+                <span className="text-[10px] bg-slate-300 text-slate-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Inactive</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Hello, <span className="font-semibold text-slate-700">{member.full_name}</span>. Your membership is currently inactive.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Details */}
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          {[
+            ['Name', member.full_name],
+            ['Membership No.', member.membership_number],
+            ['District', member.area_district],
+            ['Contact', member.contact_no],
+          ].map(([label, value]) => (
+            <div key={label} className="flex flex-col gap-0.5">
+              <span className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">{label}</span>
+              <span className="text-slate-700 font-medium">{value || '—'}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Left reason */}
+        {member.left_reason && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-amber-600 font-semibold mb-1">Reason on Record</p>
+            <p className="text-sm text-amber-800">{member.left_reason}</p>
+            {member.left_at && (
+              <p className="text-xs text-amber-500 mt-1">Date: {member.left_at.slice(0, 10)}</p>
+            )}
+          </div>
+        )}
+
+        {/* Rejoin section */}
+        {member.rejoin_request ? (
+          /* Already submitted a rejoin request */
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-blue-800">Rejoin Request Submitted</p>
+                <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">
+                  Your request to rejoin has been sent to the admin for review. You will receive an email once a decision is made.
+                </p>
+                {member.rejoin_message && (
+                  <div className="mt-2 bg-blue-100 rounded-lg px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-wide text-blue-500 font-semibold mb-0.5">Your message</p>
+                    <p className="text-xs text-blue-700">"{member.rejoin_message}"</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : rejoinDone ? (
+          /* Just submitted — success confirmation */
+          <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-5">
+            <p className="text-sm font-bold text-green-800 mb-1">✅ Request Sent!</p>
+            <p className="text-xs text-green-700 leading-relaxed">
+              Your rejoin request has been submitted. The admin will review it and you will be notified by email.
+            </p>
+          </div>
+        ) : (
+          /* Rejoin request form */
+          <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 shadow-sm">
+            <p className="text-sm font-bold text-slate-800 mb-1">Request to Rejoin</p>
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+              Want to become an active member again? Submit a rejoin request and the admin will review it.
+            </p>
+            <form onSubmit={handleRejoinSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Message to Admin <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={rejoinMessage}
+                  onChange={e => setRejoinMessage(e.target.value)}
+                  rows={3}
+                  placeholder="e.g. I wish to rejoin and actively contribute to BMA-JK…"
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-400"
+                />
+              </div>
+              {rejoinError && (
+                <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{rejoinError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={rejoinSubmitting}
+                className="w-full py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {rejoinSubmitting ? 'Submitting…' : '🔁 Request Rejoin'}
+              </button>
+            </form>
+          </div>
+        )}
+
         <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">
           Logout
         </button>
