@@ -23,11 +23,9 @@ export const MemberPortal: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUserId(session.user.id);
-        await loadMember(session.user.id, session.user.email || undefined);
-      }
+      // Always sign out any stale session on mount so a returning visitor
+      // never sees a previous user's data. They must log in fresh every time.
+      await supabase.auth.signOut();
       setLoading(false);
     };
     init();
@@ -38,6 +36,9 @@ export const MemberPortal: React.FC = () => {
         setLoading(true);
         await loadMember(session.user.id, session.user.email || undefined);
         setLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setUserId(null);
+        setMember(null);
       }
     });
     return () => subscription.unsubscribe();
@@ -46,6 +47,7 @@ export const MemberPortal: React.FC = () => {
   const loadMember = async (authId: string, userEmail?: string) => {
     setErrorMsg(null);
 
+    // Link auth_id to member row if not already linked
     if (userEmail) {
       await supabase
         .from('members')
@@ -54,12 +56,14 @@ export const MemberPortal: React.FC = () => {
         .is('auth_id', null);
     }
 
+    // Primary lookup by auth_id
     let { data, error } = await supabase
       .from('members')
       .select('*')
       .eq('auth_id', authId)
       .maybeSingle();
 
+    // Fallback: lookup by email (covers first login before auth_id was set)
     if (!data && !error && userEmail) {
       const res = await supabase
         .from('members')
@@ -149,7 +153,9 @@ export const MemberPortal: React.FC = () => {
 
   const handleRejoinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!member) return;
+    // Use userId (auth_id) as the source of truth — never rely on member.id
+    // which could be stale if session was from a different user.
+    if (!userId) return;
     setRejoinSubmitting(true);
     setRejoinError(null);
     try {
@@ -160,7 +166,7 @@ export const MemberPortal: React.FC = () => {
           rejoin_message: rejoinMessage.trim() || null,
           rejoin_requested_at: new Date().toISOString(),
         })
-        .eq('id', member.id);
+        .eq('auth_id', userId);  // ← fixed: was .eq('id', member.id)
       if (error) throw error;
       setRejoinDone(true);
       setMember(prev => prev ? { ...prev, rejoin_request: true, rejoin_message: rejoinMessage.trim() || null } : prev);
