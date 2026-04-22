@@ -77,7 +77,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
           padding: '10px 16px', gap: '10px',
           borderBottom: '3px solid #CC6600',
         }}>
-
           {/* Leader photo — left */}
           <div style={{
             flexShrink: 0, width: '155px', height: '132px',
@@ -144,7 +143,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
           gap: '18px',
         }}>
 
-          {/* Member photo — passport size: 110x140px */}
+          {/* Member photo — passport size */}
           <div style={{
             flexShrink: 0,
             width: '110px',
@@ -179,7 +178,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             display: 'flex', flexDirection: 'column',
             justifyContent: 'space-evenly',
             height: '100%',
-            paddingRight: '155px',
           }}>
             {fields.map(({ label, value }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
@@ -226,7 +224,8 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
           display: 'flex', alignItems: 'center',
           padding: '0 18px',
         }}>
-          <div style={{ flex: 1 }}>
+          {/* Left: slogan */}
+          <div style={{ width: '220px', flexShrink: 0 }}>
             <div style={{
               fontFamily: "'Georgia', serif", fontWeight: 700, fontSize: '17px',
               color: '#FFD700', textShadow: '0 1px 4px rgba(0,0,0,0.5)',
@@ -243,12 +242,14 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             </div>
           </div>
 
+          {/* Center: Authorized Signatory */}
           <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-            gap: '3px', marginRight: '10px',
+            flex: 1,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: '4px',
           }}>
             <div style={{
-              width: '140px', height: '30px',
+              width: '160px', height: '28px',
               borderBottom: '1.5px solid rgba(255,255,255,0.9)',
               background: 'rgba(255,255,255,0.08)',
             }} />
@@ -259,6 +260,9 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               Authorized Signatory
             </span>
           </div>
+
+          {/* Right: spacer so seal doesn't overlap */}
+          <div style={{ width: '155px', flexShrink: 0 }} />
         </div>
 
         {/* ── CIRCULAR SEAL — bottom right ── */}
