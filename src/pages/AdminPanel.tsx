@@ -391,19 +391,20 @@ export const AdminPanel: React.FC = () => {
 
   const fetchRef = useRef<number>(0);
 
-  // Load rejoin count badge whenever admin is logged in
+  // FIX: only depends on isAdmin — not on members.
+  // Previously depending on `members` caused a double-query waterfall on every tab switch.
+  const refreshRejoinCount = async () => {
+    const { count } = await supabase
+      .from('members')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'left')
+      .eq('rejoin_request', true);
+    setRejoinCount(count ?? 0);
+  };
+
   useEffect(() => {
-    if (!isAdmin) return;
-    const loadRejoinCount = async () => {
-      const { count } = await supabase
-        .from('members')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'left')
-        .eq('rejoin_request', true);
-      setRejoinCount(count ?? 0);
-    };
-    loadRejoinCount();
-  }, [isAdmin, members]); // refresh count whenever members list changes
+    if (isAdmin) refreshRejoinCount();
+  }, [isAdmin]); // ← removed `members` dependency
 
   useEffect(() => {
     if (isAdmin && activeTab !== 'create-admin') loadMembers(activeTab);
@@ -458,7 +459,8 @@ export const AdminPanel: React.FC = () => {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setActionMsg({ type: 'ok', text: `✅ Approved! Membership No.: ${data.membership_number} — Congratulations email sent.` });
-      await loadMembers(activeTab);
+      // Refresh members list and rejoin count in parallel
+      await Promise.all([loadMembers(activeTab), refreshRejoinCount()]);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Approval failed' });
@@ -480,7 +482,7 @@ export const AdminPanel: React.FC = () => {
       if (data?.error) throw new Error(data.error);
       setActionMsg({ type: 'ok', text: '❌ Application rejected — notification email sent to applicant.' });
       setRejectTarget(null);
-      await loadMembers(activeTab);
+      await Promise.all([loadMembers(activeTab), refreshRejoinCount()]);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Rejection failed' });
@@ -502,7 +504,7 @@ export const AdminPanel: React.FC = () => {
       if (data?.error) throw new Error(data.error);
       setActionMsg({ type: 'ok', text: `✅ ${markLeftTarget.full_name} moved to Former Members. Notification email sent.` });
       setMarkLeftTarget(null);
-      await loadMembers(activeTab);
+      await Promise.all([loadMembers(activeTab), refreshRejoinCount()]);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Failed' });
@@ -520,7 +522,7 @@ export const AdminPanel: React.FC = () => {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setActionMsg({ type: 'ok', text: `✅ ${member.full_name} has been re-approved. Welcome back email sent.` });
-      await loadMembers(activeTab);
+      await Promise.all([loadMembers(activeTab), refreshRejoinCount()]);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Failed' });
@@ -538,7 +540,7 @@ export const AdminPanel: React.FC = () => {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setActionMsg({ type: 'ok', text: `Rejoin request from ${member.full_name} has been declined.` });
-      await loadMembers(activeTab);
+      await Promise.all([loadMembers(activeTab), refreshRejoinCount()]);
       setFormMember(null);
     } catch (err: any) {
       setActionMsg({ type: 'err', text: err.message ?? 'Failed' });
