@@ -53,12 +53,7 @@ export const IDCard: React.FC<Props> = ({ member }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', padding: '24px' }}>
 
-      <link
-        href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Roboto:wght@400;700&display=swap"
-        rel="stylesheet"
-      />
-
-      {/* ── CARD: fixed pixel size for reliable rendering ── */}
+      {/* ── CARD: fixed 600×378px ── */}
       <div
         ref={cardRef}
         style={{
@@ -74,15 +69,14 @@ export const IDCard: React.FC<Props> = ({ member }) => {
         }}
       >
 
-        {/* ── TOP BANNER (height: 110px) ── */}
+        {/* ── TOP BANNER ── */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: '110px',
           background: 'linear-gradient(180deg, #c2440a 0%, #e05a10 60%, #f5811f 100%)',
           display: 'flex', alignItems: 'center',
           padding: '0 12px', gap: '10px',
         }}>
-
-          {/* Leader photo placeholder – left */}
+          {/* Leader photo placeholder */}
           <div style={{
             flexShrink: 0, width: '130px', height: '92px', borderRadius: '4px',
             overflow: 'hidden', background: 'rgba(255,255,255,0.15)',
@@ -94,7 +88,7 @@ export const IDCard: React.FC<Props> = ({ member }) => {
             </span>
           </div>
 
-          {/* Title block – center */}
+          {/* Title block */}
           <div style={{ flex: 1, textAlign: 'center' }}>
             <div style={{
               fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: '22px',
@@ -118,7 +112,7 @@ export const IDCard: React.FC<Props> = ({ member }) => {
             </div>
           </div>
 
-          {/* India map placeholder – right */}
+          {/* India map placeholder */}
           <div style={{
             flexShrink: 0, width: '60px', height: '80px',
             background: 'rgba(255,255,255,0.15)', border: '1px dashed rgba(255,255,255,0.5)',
@@ -128,12 +122,11 @@ export const IDCard: React.FC<Props> = ({ member }) => {
           </div>
         </div>
 
-        {/* ── CARD BODY (top: 110px, bottom: 52px → height ~216px) ── */}
+        {/* ── CARD BODY ── */}
         <div style={{
           position: 'absolute', top: '110px', left: 0, right: 0, bottom: '52px',
           display: 'flex', padding: '8px 12px 6px 12px', gap: '10px',
         }}>
-
           {/* Member photo */}
           <div style={{
             flexShrink: 0, width: '100px', height: '128px',
@@ -182,7 +175,7 @@ export const IDCard: React.FC<Props> = ({ member }) => {
           </div>
         </div>
 
-        {/* ── BOTTOM STRIP (height: 52px) ── */}
+        {/* ── BOTTOM STRIP ── */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, height: '52px',
           background: 'linear-gradient(90deg, #c2440a, #e05a10 60%, #f5811f)',
@@ -192,8 +185,6 @@ export const IDCard: React.FC<Props> = ({ member }) => {
             <div style={{ color: '#FFD700', fontWeight: 700, fontSize: '11px' }}>MODI ON MISSION</div>
             <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '8px', letterSpacing: '0.1em' }}>— NATION FIRST —</div>
           </div>
-
-          {/* Authorized Signatory */}
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', marginRight: '110px' }}>
             <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '9px', color: '#FFF8DC', whiteSpace: 'nowrap', paddingBottom: '2px' }}>
               Authorized Signatory:
