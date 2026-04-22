@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: member, error: memberErr } = await adminClient
       .from("members")
-      .select("full_name, email, status, membership_number")
+      .select("full_name, email, status, membership_number, photo_url, aadhaar_front_url, aadhaar_back_url, signature_url, auth_id")
       .eq("id", member_id)
       .single();
 
@@ -102,12 +102,7 @@ Deno.serve(async (req: Request) => {
     if (action === "reject") {
       if (!rejection_reason?.trim()) return new Response(JSON.stringify({ error: "rejection_reason is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-      const { error: updateErr } = await adminClient.from("members").update({
-        status: "rejected", rejection_reason: rejection_reason.trim(),
-        membership_number: null, approved_at: null,
-      }).eq("id", member_id);
-      if (updateErr) return new Response(JSON.stringify({ error: updateErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
+      // 1. Send rejection email FIRST (while we still have the email address)
       await sendBrevoEmail({
         toEmail: member.email, toName: member.full_name,
         subject: "Update on Your BMA-JK Membership Application",
@@ -118,12 +113,66 @@ Deno.serve(async (req: Request) => {
           <div style="background:#fce4e4;border-left:4px solid #c62828;padding:16px 20px;margin:24px 0;border-radius:4px">
             <p style="margin:0;font-size:15px;color:#b71c1c;white-space:pre-line">${rejection_reason.trim()}</p>
           </div>
-          <p style="font-size:16px;color:#333">If you believe this is an error or wish to re-apply, please feel free to contact us.</p>
+          <p style="font-size:16px;color:#333">You are welcome to re-apply with corrected details. Your application number is listed below for your records.</p>
+          <div style="background:#f5f5f5;border-left:4px solid #999;padding:12px 16px;margin:16px 0;border-radius:4px">
+            <p style="margin:0;font-size:13px;color:#666">Application No.</p>
+            <p style="margin:4px 0 0;font-size:15px;font-weight:bold;color:#333;font-family:monospace">${member.full_name}</p>
+          </div>
+          <p style="font-size:16px;color:#333">If you believe this is an error, please contact us.</p>
           <p style="font-size:16px;color:#333">Regards,<br/>BMA-JK Membership Team</p>
           <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
           <p style="font-size:12px;color:#999;text-align:center">This is an automated message from BMA-JK Membership Portal.</p>
         </div>`,
       });
+
+      // 2. Delete uploaded files from storage
+      const filesToDelete: string[] = [
+        member.photo_url,
+        member.aadhaar_front_url,
+        member.aadhaar_back_url,
+        member.signature_url,
+      ].filter(Boolean) as string[];
+
+      if (filesToDelete.length > 0) {
+        await adminClient.storage.from("member-files").remove(filesToDelete);
+      }
+
+      // 3. Delete the auth user if one exists (so email is freed for re-apply)
+      if (member.auth_id) {
+        await adminClient.auth.admin.deleteUser(member.auth_id);
+      }
+
+      // 4. Wipe all personal data — keep only full_name and application_no
+      const { error: updateErr } = await adminClient.from("members").update({
+        status: "rejected",
+        rejection_reason: rejection_reason.trim(),
+        // wipe all personal fields
+        email: null,
+        auth_id: null,
+        father_name: null,
+        occupation: null,
+        designation: null,
+        area_district: null,
+        assembly_constituency: null,
+        dob: null,
+        blood_group: null,
+        contact_no: null,
+        address: null,
+        aadhaar_no: null,
+        photo_url: null,
+        aadhaar_front_url: null,
+        aadhaar_back_url: null,
+        signature_url: null,
+        membership_number: null,
+        approved_at: null,
+        left_reason: null,
+        left_at: null,
+        rejoin_request: false,
+        rejoin_message: null,
+        rejoin_requested_at: null,
+      }).eq("id", member_id);
+
+      if (updateErr) return new Response(JSON.stringify({ error: updateErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
