@@ -77,6 +77,7 @@ export const MemberPortal: React.FC = () => {
     setErrorMsg(null);
     setChecking(true);
     try {
+      // First validate the member exists and is approved
       const { data: memberData, error: memberError } = await supabase
         .from('members')
         .select('status, full_name')
@@ -98,15 +99,14 @@ export const MemberPortal: React.FC = () => {
         return;
       }
 
-      // approved — send OTP
-      const { error } = await supabase.auth.signInWithOtp({
+      // approved — send OTP (no shouldCreateUser restriction so first-time auth users work)
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
-        options: { shouldCreateUser: false },
       });
-      if (error) throw error;
+      if (otpError) throw otpError;
       setOtpSent(true);
     } catch (err: any) {
-      setErrorMsg(err.message ?? 'Could not send OTP');
+      setErrorMsg(err.message ?? 'Could not send OTP. Please try again.');
     } finally {
       setChecking(false);
     }
