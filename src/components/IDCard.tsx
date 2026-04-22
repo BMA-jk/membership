@@ -65,7 +65,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
           boxShadow: '0 12px 48px rgba(0,0,0,0.55)',
           fontFamily: "'Georgia', 'Times New Roman', serif",
           flexShrink: 0,
-          // Tricolour gradient: saffron orange top, cream/white middle, green bottom
           background: 'linear-gradient(180deg, #FF9933 0%, #FF9933 22%, #FFF5E0 35%, #FFFFF0 50%, #E8F5E0 62%, #138808 85%, #0A6B04 100%)',
         }}
       >
@@ -94,7 +93,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
 
           {/* Centre title */}
           <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
-            {/* Ashoka Chakra */}
             <div style={{ fontSize: '28px', lineHeight: 1, marginBottom: '2px' }}>🏛️</div>
             <div style={{
               fontFamily: "'Georgia', serif", fontWeight: 700, fontSize: '32px',
@@ -141,17 +139,24 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
           position: 'absolute',
           top: '155px', left: 0, right: 0, bottom: '68px',
           display: 'flex',
+          alignItems: 'center',
           padding: '12px 18px 8px 18px',
-          gap: '14px',
+          gap: '18px',
         }}>
 
-          {/* Member photo — left column */}
+          {/* Member photo — passport size: 110x140px */}
           <div style={{
-            flexShrink: 0, width: '130px',
+            flexShrink: 0,
+            width: '110px',
+            height: '140px',
             background: 'rgba(180,180,180,0.2)',
             border: '1.5px dashed rgba(80,80,80,0.35)',
-            borderRadius: '6px', overflow: 'hidden',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: '4px',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            alignSelf: 'center',
           }}>
             {member.photo_url && !photoError ? (
               <img
@@ -162,22 +167,22 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 crossOrigin="anonymous"
               />
             ) : (
-              <span style={{ fontSize: '11px', color: 'rgba(60,60,60,0.4)', textAlign: 'center', lineHeight: 1.6, padding: '8px' }}>
-                Member<br />Photo
+              <span style={{ fontSize: '11px', color: 'rgba(60,60,60,0.4)', textAlign: 'center', lineHeight: 1.6, padding: '6px' }}>
+                Photo
               </span>
             )}
           </div>
 
-          {/* Fields — right column, underline style like reference */}
+          {/* Fields */}
           <div style={{
             flex: 1,
             display: 'flex', flexDirection: 'column',
             justifyContent: 'space-evenly',
-            paddingRight: '150px', // leave room for seal
+            height: '100%',
+            paddingRight: '155px',
           }}>
             {fields.map(({ label, value }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
-                {/* Bold navy label */}
                 <span style={{
                   fontFamily: "'Georgia', serif",
                   fontWeight: 700,
@@ -190,7 +195,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 }}>
                   {label}
                 </span>
-                {/* Underline value area */}
                 <div style={{
                   flex: 1,
                   borderBottom: '1.5px solid #4a5568',
@@ -222,7 +226,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
           display: 'flex', alignItems: 'center',
           padding: '0 18px',
         }}>
-          {/* Left: slogan */}
           <div style={{ flex: 1 }}>
             <div style={{
               fontFamily: "'Georgia', serif", fontWeight: 700, fontSize: '17px',
@@ -240,7 +243,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             </div>
           </div>
 
-          {/* Right: Authorized Signatory */}
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
             gap: '3px', marginRight: '10px',
@@ -248,7 +250,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             <div style={{
               width: '140px', height: '30px',
               borderBottom: '1.5px solid rgba(255,255,255,0.9)',
-              display: 'flex', alignItems: 'center',
               background: 'rgba(255,255,255,0.08)',
             }} />
             <span style={{
@@ -270,24 +271,18 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               <path id="topArc2" d="M 13 50 A 37 37 0 0 1 87 50" />
               <path id="botArc2" d="M 7 50 A 43 43 0 0 0 93 50" />
             </defs>
-            {/* Outer ring — saffron/orange */}
             <circle cx="50" cy="50" r="49" fill="#E65C00" stroke="#FFD700" strokeWidth="1.5" />
             <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" strokeDasharray="2.5,2" />
-            {/* Inner white circle */}
             <circle cx="50" cy="50" r="32" fill="#ffffff" />
-            {/* Top arc text */}
             <text fontFamily="Georgia,serif" fontWeight="700" fontSize="8" fill="#FFD700" letterSpacing="0.5">
               <textPath xlinkHref="#topArc2" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
             </text>
-            {/* Bottom arc text */}
             <text fontFamily="Georgia,serif" fontWeight="600" fontSize="8" fill="#ffffff" letterSpacing="0.5">
               <textPath xlinkHref="#botArc2" startOffset="50%" textAnchor="middle">JAMMU &amp; KASHMIR</textPath>
             </text>
-            {/* Stars */}
             <text x="10" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
             <text x="90" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
           </svg>
-          {/* Map/emblem inside seal */}
           <div style={{
             position: 'absolute', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
