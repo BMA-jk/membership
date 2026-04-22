@@ -29,4 +29,5 @@ export interface Member {
   left_at: string | null;
   rejoin_request: boolean | null;
   rejoin_message: string | null;
+  rejoin_requested_at: string | null;
 }
