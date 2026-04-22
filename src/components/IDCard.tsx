@@ -80,7 +80,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
           display: 'flex', alignItems: 'center',
           padding: '0 18px', gap: '14px',
         }}>
-          {/* Leader photo placeholder */}
           <div style={{
             flexShrink: 0, width: '160px', height: '116px', borderRadius: '6px',
             overflow: 'hidden', background: 'rgba(255,255,255,0.15)',
@@ -92,7 +91,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             </span>
           </div>
 
-          {/* Title block */}
           <div style={{ flex: 1, textAlign: 'center' }}>
             <div style={{
               fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: '30px',
@@ -116,7 +114,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             </div>
           </div>
 
-          {/* India map placeholder */}
           <div style={{
             flexShrink: 0, width: '80px', height: '108px',
             background: 'rgba(255,255,255,0.15)', border: '1.5px dashed rgba(255,255,255,0.5)',
@@ -171,8 +168,9 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                   {label}
                 </span>
                 <span style={{
-                  fontFamily: "'Roboto', sans-serif", fontSize: '12.5px',
-                  color: '#111111', lineHeight: 1.6, fontWeight: 500,
+                  fontFamily: "'Oswald', sans-serif", fontSize: '12.5px',
+                  color: '#111111', lineHeight: 1.6, fontWeight: 700,
+                  textTransform: 'uppercase',
                   wordBreak: 'break-word', overflowWrap: 'anywhere',
                 }}>
                   {value}
