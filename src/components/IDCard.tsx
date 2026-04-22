@@ -154,7 +154,7 @@ export const IDCard: React.FC<Props> = ({ member }) => {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             {fields.map(({ label, value }) => (
               <div key={label} style={{
-                display: 'flex', alignItems: 'baseline', gap: '6px',
+                display: 'flex', alignItems: 'flex-start', gap: '6px',
                 borderBottom: '1px solid rgba(30,50,120,0.3)', paddingBottom: '1px',
               }}>
                 <span style={{
@@ -166,7 +166,7 @@ export const IDCard: React.FC<Props> = ({ member }) => {
                 <span style={{
                   fontFamily: "'Roboto', sans-serif", fontSize: '9.5px',
                   color: '#111111', lineHeight: 1.7, fontWeight: 500,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  wordBreak: 'break-word', overflowWrap: 'anywhere',
                 }}>
                   {value}
                 </span>
