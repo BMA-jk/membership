@@ -27,9 +27,13 @@ export const MemberPortal: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      // Always sign out any stale session on mount so a returning visitor
-      // never sees a previous user's data. They must log in fresh every time.
-      await supabase.auth.signOut();
+      // Check for an existing valid session — if found, restore it automatically
+      // so the user does not need to OTP again after leaving and returning.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+        await loadMember(session.user.id, session.user.email || undefined);
+      }
       setLoading(false);
     };
     init();
@@ -165,20 +169,35 @@ export const MemberPortal: React.FC = () => {
 
   const handleRejoinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Use userId (auth_id) as the source of truth — never rely on member.id
-    // which could be stale if session was from a different user.
-    if (!userId) return;
+    if (!userId || !member) return;
     setRejoinSubmitting(true);
     setRejoinError(null);
     try {
-      const { error } = await supabase
+      // Try update by auth_id first (the normal case)
+      let { error, count } = await supabase
         .from('members')
         .update({
           rejoin_request: true,
           rejoin_message: rejoinMessage.trim() || null,
           rejoin_requested_at: new Date().toISOString(),
         })
-        .eq('auth_id', userId);  // ← fixed: was .eq('id', member.id)
+        .eq('auth_id', userId)
+        .select('id', { count: 'exact', head: true });
+
+      // Fallback: if no row matched by auth_id, try by email
+      if (!error && (count === 0 || count === null)) {
+        const fallback = await supabase
+          .from('members')
+          .update({
+            rejoin_request: true,
+            rejoin_message: rejoinMessage.trim() || null,
+            rejoin_requested_at: new Date().toISOString(),
+          })
+          .eq('email', member.email)
+          .eq('status', 'left');
+        error = fallback.error;
+      }
+
       if (error) throw error;
       setRejoinDone(true);
       setMember(prev => prev ? { ...prev, rejoin_request: true, rejoin_message: rejoinMessage.trim() || null } : prev);
