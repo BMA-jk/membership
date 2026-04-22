@@ -18,6 +18,7 @@ export const MemberPortal: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [showCard, setShowCard] = useState(false);
 
   // Rejoin state
   const [rejoinMessage, setRejoinMessage] = useState('');
@@ -27,8 +28,6 @@ export const MemberPortal: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      // Check for an existing valid session — if found, restore it automatically
-      // so the user does not need to OTP again after leaving and returning.
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUserId(session.user.id);
@@ -41,7 +40,6 @@ export const MemberPortal: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         setUserId(session.user.id);
-        // Save email to localStorage so it pre-fills next visit
         try {
           if (session.user.email) localStorage.setItem(LAST_EMAIL_KEY, session.user.email);
         } catch { /* ignore */ }
@@ -58,8 +56,6 @@ export const MemberPortal: React.FC = () => {
 
   const loadMember = async (authId: string, userEmail?: string) => {
     setErrorMsg(null);
-
-    // Link auth_id to member row if not already linked
     if (userEmail) {
       await supabase
         .from('members')
@@ -67,15 +63,11 @@ export const MemberPortal: React.FC = () => {
         .eq('email', userEmail)
         .is('auth_id', null);
     }
-
-    // Primary lookup by auth_id
     let { data, error } = await supabase
       .from('members')
       .select('*')
       .eq('auth_id', authId)
       .maybeSingle();
-
-    // Fallback: lookup by email (covers first login before auth_id was set)
     if (!data && !error && userEmail) {
       const res = await supabase
         .from('members')
@@ -85,7 +77,6 @@ export const MemberPortal: React.FC = () => {
       data = res.data;
       error = res.error;
     }
-
     if (error) { setErrorMsg('Could not load your membership.'); return; }
     if (!data) {
       setErrorMsg('No membership found for this email. Please ensure your application has been submitted.');
@@ -104,9 +95,7 @@ export const MemberPortal: React.FC = () => {
         .select('status, full_name')
         .eq('email', email.trim().toLowerCase())
         .maybeSingle();
-
       if (memberError) throw memberError;
-
       if (!memberData) {
         setErrorMsg('No membership application found for this email address.');
         return;
@@ -119,12 +108,10 @@ export const MemberPortal: React.FC = () => {
         setErrorMsg('Your membership application was not approved.');
         return;
       }
-      // approved OR left — allow login
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
       });
       if (otpError) throw otpError;
-      // Save email to localStorage as soon as OTP is successfully sent
       try { localStorage.setItem(LAST_EMAIL_KEY, email.trim().toLowerCase()); } catch { /* ignore */ }
       setOtpSent(true);
     } catch (err: any) {
@@ -163,7 +150,7 @@ export const MemberPortal: React.FC = () => {
     setRejoinDone(false);
     setRejoinMessage('');
     setRejoinError(null);
-    // Clear saved email on explicit logout
+    setShowCard(false);
     try { localStorage.removeItem(LAST_EMAIL_KEY); } catch { /* ignore */ }
   };
 
@@ -173,7 +160,6 @@ export const MemberPortal: React.FC = () => {
     setRejoinSubmitting(true);
     setRejoinError(null);
     try {
-      // Try update by auth_id first (the normal case)
       let { error, count } = await supabase
         .from('members')
         .update({
@@ -183,8 +169,6 @@ export const MemberPortal: React.FC = () => {
         })
         .eq('auth_id', userId)
         .select('id', { count: 'exact', head: true });
-
-      // Fallback: if no row matched by auth_id, try by email
       if (!error && (count === 0 || count === null)) {
         const fallback = await supabase
           .from('members')
@@ -197,7 +181,6 @@ export const MemberPortal: React.FC = () => {
           .eq('status', 'left');
         error = fallback.error;
       }
-
       if (error) throw error;
       setRejoinDone(true);
       setMember(prev => prev ? { ...prev, rejoin_request: true, rejoin_message: rejoinMessage.trim() || null } : prev);
@@ -257,9 +240,7 @@ export const MemberPortal: React.FC = () => {
   if (!userId && otpSent) return (
     <PageShell title="Enter OTP">
       <div className="max-w-sm">
-        <p className="text-sm text-slate-600 mb-1">
-          An 8-digit code was sent to:
-        </p>
+        <p className="text-sm text-slate-600 mb-1">An 8-digit code was sent to:</p>
         <p className="text-sm font-semibold text-orange-600 mb-4">{email}</p>
         <form onSubmit={handleVerifyOtp} className="space-y-4">
           <div>
@@ -348,9 +329,7 @@ export const MemberPortal: React.FC = () => {
             </div>
           ))}
         </div>
-        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">
-          Logout
-        </button>
+        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">Logout</button>
       </div>
     </PageShell>
   );
@@ -368,9 +347,7 @@ export const MemberPortal: React.FC = () => {
             <p className="text-xs text-red-700 bg-red-100 rounded-lg px-3 py-2 mt-2">Reason: {member.rejection_reason}</p>
           )}
         </div>
-        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">
-          Logout
-        </button>
+        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">Logout</button>
       </div>
     </PageShell>
   );
@@ -379,8 +356,6 @@ export const MemberPortal: React.FC = () => {
   if (member.status === 'left') return (
     <PageShell title="Member Portal">
       <div className="max-w-lg space-y-5">
-
-        {/* Former member banner */}
         <div className="bg-slate-100 border border-slate-300 rounded-2xl px-5 py-5">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-full bg-slate-300 flex items-center justify-center shrink-0 mt-0.5">
@@ -400,8 +375,6 @@ export const MemberPortal: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Details */}
         <div className="grid grid-cols-2 gap-3 text-sm">
           {[
             ['Name', member.full_name],
@@ -415,8 +388,6 @@ export const MemberPortal: React.FC = () => {
             </div>
           ))}
         </div>
-
-        {/* Left reason */}
         {member.left_reason && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
             <p className="text-[11px] uppercase tracking-wide text-amber-600 font-semibold mb-1">Reason on Record</p>
@@ -426,10 +397,7 @@ export const MemberPortal: React.FC = () => {
             )}
           </div>
         )}
-
-        {/* Rejoin section */}
         {member.rejoin_request ? (
-          /* Already submitted a rejoin request */
           <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-5">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
@@ -440,7 +408,7 @@ export const MemberPortal: React.FC = () => {
               <div>
                 <p className="text-sm font-bold text-blue-800">Rejoin Request Submitted</p>
                 <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">
-                  Your request to rejoin has been sent to the admin for review. You will receive an email once a decision is made.
+                  Your request to rejoin has been sent to the admin for review.
                 </p>
                 {member.rejoin_message && (
                   <div className="mt-2 bg-blue-100 rounded-lg px-3 py-2">
@@ -452,7 +420,6 @@ export const MemberPortal: React.FC = () => {
             </div>
           </div>
         ) : rejoinDone ? (
-          /* Just submitted — success confirmation */
           <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-5">
             <p className="text-sm font-bold text-green-800 mb-1">✅ Request Sent!</p>
             <p className="text-xs text-green-700 leading-relaxed">
@@ -460,7 +427,6 @@ export const MemberPortal: React.FC = () => {
             </p>
           </div>
         ) : (
-          /* Rejoin request form */
           <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 shadow-sm">
             <p className="text-sm font-bold text-slate-800 mb-1">Request to Rejoin</p>
             <p className="text-xs text-slate-500 mb-4 leading-relaxed">
@@ -492,57 +458,102 @@ export const MemberPortal: React.FC = () => {
             </form>
           </div>
         )}
-
-        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">
-          Logout
-        </button>
+        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">Logout</button>
       </div>
     </PageShell>
   );
 
   // ── Approved member dashboard
+  // Card preview modal
+  if (showCard && member) return (
+    <PageShell title="ID Card Preview">
+      <div className="overflow-x-auto">
+        <IDCard member={member} onClose={() => setShowCard(false)} />
+      </div>
+    </PageShell>
+  );
+
   return (
     <PageShell title="Your Membership">
-      <div className="flex justify-end mb-4">
-        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">Logout</button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Info */}
-        <div className="space-y-3">
-          <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
-            <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide">Membership Number</p>
-            <p className="text-2xl font-bold text-orange-700 mt-0.5">{member.membership_number}</p>
-          </div>
-          {member.application_no && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
-              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Form Number</p>
-              <p className="font-mono text-sm text-slate-600 mt-0.5">{member.application_no}</p>
+      <div className="max-w-2xl space-y-6">
+
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
             </div>
+            <div>
+              <p className="text-xs text-green-600 font-semibold uppercase tracking-wide">Active Member</p>
+              <p className="text-base font-bold text-slate-800">{member.full_name}</p>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-red-600 underline">Logout</button>
+        </div>
+
+        {/* Membership number highlight */}
+        <div className="bg-orange-50 border border-orange-200 rounded-xl px-5 py-4">
+          <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide mb-1">Membership Number</p>
+          <p className="text-3xl font-bold text-orange-700 tracking-wide">{member.membership_number}</p>
+          {member.application_no && (
+            <p className="text-xs text-slate-400 mt-1">Form No: <span className="font-mono text-slate-500">{member.application_no}</span></p>
           )}
-          <div className="grid grid-cols-2 gap-3 text-sm">
+        </div>
+
+        {/* Member details grid */}
+        <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Member Details</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
             {[
-              ['Name', member.full_name],
+              ['Full Name', member.full_name],
               ['Designation', member.designation],
-              ['District', member.area_district],
+              ['Area / District', member.area_district],
               ['Date of Birth', member.dob],
               ['Blood Group', member.blood_group],
-              ['Contact', member.contact_no],
+              ['Contact No.', member.contact_no],
+              ['Email', member.email],
+              ['Date of Joining', member.approved_at ? new Date(member.approved_at).toLocaleDateString('en-IN') : '—'],
             ].map(([label, value]) => (
               <div key={label} className="flex flex-col gap-0.5">
                 <span className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">{label}</span>
-                <span className="text-slate-800">{value || '—'}</span>
+                <span className="text-slate-800 font-medium">{value || '—'}</span>
               </div>
             ))}
             <div className="col-span-2 flex flex-col gap-0.5">
               <span className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">Address</span>
-              <span className="text-slate-800">{member.address || '—'}</span>
+              <span className="text-slate-800 font-medium">{member.address || '—'}</span>
             </div>
           </div>
         </div>
-        {/* ID Card */}
-        <div>
-          <IDCard member={member} />
+
+        {/* ID Card action buttons */}
+        <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">ID Card</p>
+          <p className="text-xs text-slate-500 mb-4">Preview your membership card or download it as a high-quality PNG image.</p>
+          <div className="flex gap-3 flex-wrap">
+            <button
+              onClick={() => setShowCard(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-orange-500 text-orange-600 text-sm font-semibold hover:bg-orange-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              Preview Card
+            </button>
+            <button
+              onClick={() => setShowCard(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Download Card
+            </button>
+          </div>
         </div>
+
       </div>
     </PageShell>
   );
