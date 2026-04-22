@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
 import { Member } from '../types';
 
 interface Props {
@@ -15,6 +14,8 @@ export const IDCard: React.FC<Props> = ({ member }) => {
     if (!cardRef.current) return;
     setDownloading(true);
     try {
+      // Lazy-load html2canvas only when button is clicked — never on page load
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(cardRef.current, {
         scale: 3,
         useCORS: true,
@@ -27,6 +28,8 @@ export const IDCard: React.FC<Props> = ({ member }) => {
       a.href = canvas.toDataURL('image/png');
       a.download = `BMA-Card-${member.membership_number || member.full_name}.png`;
       a.click();
+    } catch (err) {
+      console.error('Download failed:', err);
     } finally {
       setDownloading(false);
     }
@@ -216,10 +219,10 @@ export const IDCard: React.FC<Props> = ({ member }) => {
             <circle cx="50" cy="50" r="44.5" fill="none" stroke="#ffffff" strokeWidth="0.5" strokeDasharray="2,1.5"/>
             <circle cx="50" cy="50" r="28" fill="#ffffff"/>
             <text fontFamily="Oswald,sans-serif" fontWeight="700" fontSize="8.5" fill="#ffffff" letterSpacing="0.5">
-              <textPath href="#sealTopArc" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
+              <textPath xlinkHref="#sealTopArc" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
             </text>
             <text fontFamily="Oswald,sans-serif" fontWeight="600" fontSize="8.5" fill="#FFD700" letterSpacing="0.5">
-              <textPath href="#sealBotArc" startOffset="50%" textAnchor="middle">JAMMU &amp; KASHMIR</textPath>
+              <textPath xlinkHref="#sealBotArc" startOffset="50%" textAnchor="middle">JAMMU &amp; KASHMIR</textPath>
             </text>
             <text x="10" y="52.5" fontSize="7" fill="#FFD700" textAnchor="middle">★</text>
             <text x="90" y="52.5" fontSize="7" fill="#FFD700" textAnchor="middle">★</text>
