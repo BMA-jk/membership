@@ -1,4 +1,4 @@
-export type MemberStatus = 'pending' | 'approved' | 'rejected';
+export type MemberStatus = 'pending' | 'approved' | 'rejected' | 'left';
 
 export interface Member {
   id: string;
@@ -20,8 +20,13 @@ export interface Member {
   aadhaar_back_url: string | null;
   signature_url: string | null;
   membership_number: string | null;
+  application_no: string | null;
   status: MemberStatus;
   rejection_reason: string | null;
   approved_at: string | null;
   auth_id: string | null;
+  left_reason: string | null;
+  left_at: string | null;
+  rejoin_request: boolean | null;
+  rejoin_message: string | null;
 }
