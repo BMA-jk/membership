@@ -6,6 +6,10 @@ interface Props {
   onClose?: () => void;
 }
 
+const LEADER_IMG = '/leader.png';
+const MAP_HEADER_IMG = '/indian map header.png';
+const MAP_CIRCLE_IMG = '/indian map circle.png';
+
 export const IDCard: React.FC<Props> = ({ member, onClose }) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -15,6 +19,14 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
 
   const CARD_W = 856;
   const CARD_H = 540;
+
+  // Preload static card images into browser cache on first render
+  useEffect(() => {
+    [LEADER_IMG, MAP_HEADER_IMG, MAP_CIRCLE_IMG].forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
 
   useEffect(() => {
     const updateScale = () => {
@@ -78,7 +90,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       ref={wrapperRef}
       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', padding: '16px', width: '100%', boxSizing: 'border-box' }}
     >
-      {/* Scale wrapper — keeps card pixel-perfect for download but fits any screen */}
       <div style={{
         width: `${CARD_W * scale}px`,
         height: `${CARD_H * scale}px`,
@@ -107,17 +118,20 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             padding: '10px 16px', gap: '10px',
             borderBottom: '3px solid #CC6600',
           }}>
+
+            {/* Leader Photo */}
             <div style={{
               flexShrink: 0, width: '155px', height: '132px',
               borderRadius: '6px', overflow: 'hidden',
-              background: 'rgba(255,255,255,0.15)',
-              border: '1.5px dashed rgba(255,255,255,0.6)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.75)', textAlign: 'center', lineHeight: 1.5 }}>
-                Leader<br />Photo
-              </span>
+              <img
+                src={LEADER_IMG}
+                alt="Leader"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
+              />
             </div>
+
+            {/* Centre title */}
             <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
               <div style={{ fontSize: '28px', lineHeight: 1, marginBottom: '2px' }}>🏛️</div>
               <div style={{
@@ -146,14 +160,17 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 MEMBERSHIP CARD
               </div>
             </div>
+
+            {/* India Map — header */}
             <div style={{
               flexShrink: 0, width: '90px', height: '124px',
               borderRadius: '6px', overflow: 'hidden',
-              background: 'rgba(255,255,255,0.12)',
-              border: '1.5px dashed rgba(255,255,255,0.55)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 1.5 }}>India<br />Map</span>
+              <img
+                src={MAP_HEADER_IMG}
+                alt="India Map"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+              />
             </div>
           </div>
 
@@ -164,6 +181,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             display: 'flex', alignItems: 'center',
             padding: '12px 18px 8px 18px', gap: '18px',
           }}>
+            {/* Member Photo */}
             <div style={{
               flexShrink: 0, width: '110px', height: '140px',
               background: 'rgba(180,180,180,0.2)',
@@ -186,6 +204,8 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 </span>
               )}
             </div>
+
+            {/* Fields */}
             <div style={{
               flex: 1, display: 'flex', flexDirection: 'column',
               justifyContent: 'space-evenly', height: '100%',
@@ -239,7 +259,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             <div style={{ width: '155px', flexShrink: 0 }} />
           </div>
 
-          {/* ── CIRCULAR SEAL — bottom right ── */}
+          {/* ── CIRCULAR SEAL ── */}
           <div style={{
             position: 'absolute', bottom: '4px', right: '10px',
             width: '148px', height: '148px', zIndex: 10,
@@ -261,14 +281,18 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               <text x="10" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
               <text x="90" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
             </svg>
+            {/* India Map — circle */}
             <div style={{
               position: 'absolute', top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
               width: '64%', height: '64%', borderRadius: '50%', overflow: 'hidden',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5,
-              background: 'rgba(240,240,255,0.6)',
+              zIndex: 5,
             }}>
-              <span style={{ fontSize: '8px', color: 'rgba(20,60,20,0.5)', textAlign: 'center', lineHeight: 1.4 }}>Map<br />PNG</span>
+              <img
+                src={MAP_CIRCLE_IMG}
+                alt="India"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+              />
             </div>
           </div>
         </div>
