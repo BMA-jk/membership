@@ -59,6 +59,12 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
     return d.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  const photoUrl = member.photo_url
+    ? member.photo_url.startsWith('http')
+      ? member.photo_url
+      : `https://ibfpyyzuarrxmokdwxns.supabase.co/storage/v1/object/public/member-files/${member.photo_url}`
+    : null;
+
   const fields = [
     { label: 'Membership No:', value: member.membership_number || '' },
     { label: 'Name:', value: member.full_name || '' },
@@ -166,9 +172,9 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               alignSelf: 'center',
             }}>
-              {member.photo_url && !photoError ? (
+              {photoUrl && !photoError ? (
                 <img
-                  src={member.photo_url}
+                  src={photoUrl}
                   alt={member.full_name}
                   onError={() => setPhotoError(true)}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
