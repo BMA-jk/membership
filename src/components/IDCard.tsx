@@ -21,10 +21,10 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
   const CARD_H = 540;
 
   const SEAL_SIZE = 140;
-  const SEAL_BOTTOM = 10;
-  const SEAL_RIGHT = 12;
+  // Absolute top/left so html2canvas never clips — equivalent to bottom:10px right:12px
+  const SEAL_TOP = CARD_H - SEAL_SIZE - 10;   // 540 - 140 - 10 = 390
+  const SEAL_LEFT = CARD_W - SEAL_SIZE - 12;  // 856 - 140 - 12 = 704
 
-  // Preload static card images into browser cache on first render
   useEffect(() => {
     [LEADER_IMG, MAP_HEADER_IMG, MAP_CIRCLE_IMG].forEach((src) => {
       const img = new Image();
@@ -56,7 +56,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
         backgroundColor: null,
         logging: false,
         imageTimeout: 15000,
-        // ensure full card is captured without clipping
         width: CARD_W,
         height: CARD_H,
         scrollX: 0,
@@ -99,11 +98,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       ref={wrapperRef}
       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', padding: '16px', width: '100%', boxSizing: 'border-box' }}
     >
-      <div style={{
-        width: `${CARD_W * scale}px`,
-        height: `${CARD_H * scale}px`,
-        flexShrink: 0,
-      }}>
+      <div style={{ width: `${CARD_W * scale}px`, height: `${CARD_H * scale}px`, flexShrink: 0 }}>
         <div
           ref={cardRef}
           style={{
@@ -237,20 +232,19 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 color: '#ffffff', letterSpacing: '0.16em', marginTop: '2px', fontWeight: 600,
               }}>— NATION FIRST —</div>
             </div>
-            {/* spacer so text doesn’t go under seal */}
-            <div style={{ width: `${SEAL_SIZE + SEAL_RIGHT}px`, flexShrink: 0 }} />
+            <div style={{ width: `${SEAL_SIZE + 12}px`, flexShrink: 0 }} />
           </div>
 
-          {/* ── CIRCULAR SEAL — positioned fully inside card ── */}
+          {/* ── CIRCULAR SEAL — top/left absolute so html2canvas never clips it ── */}
           <div style={{
             position: 'absolute',
-            bottom: `${SEAL_BOTTOM}px`,
-            right: `${SEAL_RIGHT}px`,
+            top: `${SEAL_TOP}px`,
+            left: `${SEAL_LEFT}px`,
             width: `${SEAL_SIZE}px`,
             height: `${SEAL_SIZE}px`,
             zIndex: 10,
           }}>
-            {/* SVG ring + text — no image tags inside SVG */}
+            {/* SVG ring + arc text */}
             <svg viewBox="0 0 100 100" width={SEAL_SIZE} height={SEAL_SIZE}
               style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
               <defs>
@@ -259,7 +253,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               </defs>
               <circle cx="50" cy="50" r="49" fill="#E65C00" stroke="#FFD700" strokeWidth="1.5" />
               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" strokeDasharray="2.5,2" />
-              {/* white backing for inner image */}
               <circle cx="50" cy="50" r="32" fill="#ffffff" />
               <text fontFamily="Georgia,serif" fontWeight="700" fontSize="8" fill="#FFD700" letterSpacing="0.5">
                 <textPath xlinkHref="#topArc2" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
@@ -271,23 +264,17 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               <text x="90" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
             </svg>
 
-            {/* India map image — plain CSS div, html2canvas renders this correctly */}
+            {/* India map — plain CSS div, centered inside seal */}
             <div style={{
               position: 'absolute',
-              // center inside the seal: seal is SEAL_SIZE px, inner white circle is 64% => ~89.6px
-              // offset from seal edge: (SEAL_SIZE - innerPx) / 2
-              top: '50%',
-              left: '50%',
+              top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '63%',
-              height: '63%',
+              width: '63%', height: '63%',
               borderRadius: '50%',
               overflow: 'hidden',
               zIndex: 2,
             }}>
-              <img
-                src={MAP_CIRCLE_IMG}
-                alt="India"
+              <img src={MAP_CIRCLE_IMG} alt="India"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
                 crossOrigin="anonymous"
               />
@@ -299,21 +286,13 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
 
       {/* ── DISCLAIMER ── */}
       <div style={{
-        maxWidth: `${CARD_W * scale}px`,
-        width: '100%',
-        background: '#f8f9fa',
-        border: '1px solid #dee2e6',
-        borderRadius: '8px',
-        padding: '12px 16px',
-        textAlign: 'center',
+        maxWidth: `${CARD_W * scale}px`, width: '100%',
+        background: '#f8f9fa', border: '1px solid #dee2e6',
+        borderRadius: '8px', padding: '12px 16px', textAlign: 'center',
       }}>
         <p style={{
-          fontFamily: "'Georgia', serif",
-          fontSize: '12px',
-          color: '#6c757d',
-          lineHeight: 1.6,
-          margin: 0,
-          fontStyle: 'italic',
+          fontFamily: "'Georgia', serif", fontSize: '12px',
+          color: '#6c757d', lineHeight: 1.6, margin: 0, fontStyle: 'italic',
         }}>
           <strong style={{ fontStyle: 'normal', color: '#495057' }}>Note:</strong> This card is a digital representation for reference purposes only. It does not constitute a valid identity document and is not intended for printing or official use. Physical membership cards are issued exclusively and directly by Bhartiya Modi Army, Jammu &amp; Kashmir.
         </p>
