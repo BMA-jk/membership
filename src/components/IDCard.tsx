@@ -85,6 +85,11 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
     { label: 'Date of Joining:', value: formatDate(member.approved_at) },
   ];
 
+  // Seal dimensions — kept fully inside the card
+  const SEAL_SIZE = 140;
+  const SEAL_BOTTOM = 10;  // gap from bottom edge
+  const SEAL_RIGHT = 12;   // gap from right edge
+
   return (
     <div
       ref={wrapperRef}
@@ -133,7 +138,23 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
 
             {/* Centre title */}
             <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
-              <div style={{ fontSize: '28px', lineHeight: 1, marginBottom: '2px' }}>🏛️</div>
+
+              {/* Invisible 1:1 logo placeholder — replace src with your logo */}
+              <div style={{
+                width: '32px', height: '32px',
+                margin: '0 auto 2px auto',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                background: 'transparent',
+              }}>
+                <img
+                  src=""
+                  alt="Logo"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+
               <div style={{
                 fontFamily: "'Georgia', serif", fontWeight: 700, fontSize: '32px',
                 color: '#FFD700',
@@ -256,45 +277,62 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 — NATION FIRST —
               </div>
             </div>
-            <div style={{ width: '155px', flexShrink: 0 }} />
+            <div style={{ width: `${SEAL_SIZE + SEAL_RIGHT}px`, flexShrink: 0 }} />
           </div>
 
-          {/* ── CIRCULAR SEAL ── */}
+          {/* ── CIRCULAR SEAL ── fully inside card bounds ── */}
           <div style={{
-            position: 'absolute', bottom: '4px', right: '10px',
-            width: '148px', height: '148px', zIndex: 10,
+            position: 'absolute',
+            bottom: `${SEAL_BOTTOM}px`,
+            right: `${SEAL_RIGHT}px`,
+            width: `${SEAL_SIZE}px`,
+            height: `${SEAL_SIZE}px`,
+            zIndex: 10,
           }}>
-            <svg viewBox="0 0 100 100" width="148" height="148" style={{ position: 'absolute', top: 0, left: 0 }}>
+            <svg
+              viewBox="0 0 100 100"
+              width={SEAL_SIZE}
+              height={SEAL_SIZE}
+              style={{ position: 'absolute', top: 0, left: 0 }}
+            >
               <defs>
                 <path id="topArc2" d="M 13 50 A 37 37 0 0 1 87 50" />
                 <path id="botArc2" d="M 7 50 A 43 43 0 0 0 93 50" />
+                <clipPath id="circleClip">
+                  <circle cx="50" cy="50" r="31" />
+                </clipPath>
               </defs>
+
+              {/* Outer ring */}
               <circle cx="50" cy="50" r="49" fill="#E65C00" stroke="#FFD700" strokeWidth="1.5" />
               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" strokeDasharray="2.5,2" />
+
+              {/* White inner circle background */}
               <circle cx="50" cy="50" r="32" fill="#ffffff" />
+
+              {/* India map image clipped inside circle — rendered via foreignObject so html2canvas captures it */}
+              <image
+                href={MAP_CIRCLE_IMG}
+                x="19" y="19"
+                width="62" height="62"
+                preserveAspectRatio="xMidYMid slice"
+                clipPath="url(#circleClip)"
+              />
+
+              {/* Arc text */}
               <text fontFamily="Georgia,serif" fontWeight="700" fontSize="8" fill="#FFD700" letterSpacing="0.5">
                 <textPath xlinkHref="#topArc2" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
               </text>
               <text fontFamily="Georgia,serif" fontWeight="600" fontSize="8" fill="#ffffff" letterSpacing="0.5">
                 <textPath xlinkHref="#botArc2" startOffset="50%" textAnchor="middle">JAMMU &amp; KASHMIR</textPath>
               </text>
+
+              {/* Stars */}
               <text x="10" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
               <text x="90" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
             </svg>
-            {/* India Map — circle */}
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '64%', height: '64%', borderRadius: '50%', overflow: 'hidden',
-              zIndex: 5,
-            }}>
-              <img
-                src={MAP_CIRCLE_IMG}
-                alt="India"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
-              />
-            </div>
           </div>
+
         </div>
       </div>
 
