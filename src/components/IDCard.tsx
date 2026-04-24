@@ -10,24 +10,49 @@ const LEADER_IMG = '/leader.png';
 const MAP_HEADER_IMG = '/indian map header.png';
 const MAP_CIRCLE_IMG = '/indian map circle.png';
 
+const CARD_W = 856;
+const CARD_H = 540;
+const SEAL_SIZE = 140;
+const SEAL_TOP  = CARD_H - SEAL_SIZE - 10;  // 390
+const SEAL_LEFT = CARD_W - SEAL_SIZE - 12;  // 704
+
+/** Load an image and return an HTMLImageElement (CORS-safe) */
+function loadImg(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load ${src}`));
+    // Bust cache so CORS headers are respected
+    img.src = src.startsWith('http') ? src + (src.includes('?') ? '&' : '?') + '_t=' + Date.now() : src;
+  });
+}
+
+/** Draw rounded rectangle path */
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
 export const IDCard: React.FC<Props> = ({ member, onClose }) => {
-  const cardRef = useRef<HTMLDivElement | null>(null);
+  const cardRef    = useRef<HTMLDivElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const [photoError, setPhotoError] = useState(false);
-  const [scale, setScale] = useState(1);
-
-  const CARD_W = 856;
-  const CARD_H = 540;
-
-  const SEAL_SIZE = 140;
-  const SEAL_TOP = CARD_H - SEAL_SIZE - 10;   // 390
-  const SEAL_LEFT = CARD_W - SEAL_SIZE - 12;  // 704
+  const [photoError, setPhotoError]   = useState(false);
+  const [scale, setScale]             = useState(1);
 
   useEffect(() => {
     [LEADER_IMG, MAP_HEADER_IMG, MAP_CIRCLE_IMG].forEach((src) => {
-      const img = new Image();
-      img.src = src;
+      const img = new Image(); img.src = src;
     });
   }, []);
 
@@ -35,81 +60,12 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
     const updateScale = () => {
       if (!wrapperRef.current) return;
       const available = wrapperRef.current.offsetWidth - 32;
-      const s = Math.min(1, available / CARD_W);
-      setScale(s);
+      setScale(Math.min(1, available / CARD_W));
     };
     updateScale();
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
   }, []);
-
-  const handleDownload = async () => {
-    if (!cardRef.current) return;
-    setDownloading(true);
-    try {
-      const { default: html2canvas } = await import('html2canvas');
-
-      // Clone the card into a fixed offscreen container so html2canvas
-      // always sees it at (0,0) with no transform/scale — this prevents
-      // the seal (and any other element) from being misaligned in the PNG.
-      const container = document.createElement('div');
-      container.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: ${CARD_W}px;
-        height: ${CARD_H}px;
-        overflow: visible;
-        pointer-events: none;
-        z-index: -9999;
-        opacity: 0;
-      `;
-
-      const clone = cardRef.current.cloneNode(true) as HTMLElement;
-      // Remove any transform/scale from the clone so it renders at true size
-      clone.style.transform = 'none';
-      clone.style.transformOrigin = 'top left';
-      clone.style.width = `${CARD_W}px`;
-      clone.style.height = `${CARD_H}px`;
-      clone.style.position = 'relative';
-      clone.style.top = '0';
-      clone.style.left = '0';
-
-      container.appendChild(clone);
-      document.body.appendChild(container);
-
-      // Small delay to let images inside the clone settle
-      await new Promise((r) => setTimeout(r, 100));
-
-      const canvas = await html2canvas(clone, {
-        scale: 4,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-        logging: false,
-        imageTimeout: 15000,
-        width: CARD_W,
-        height: CARD_H,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: CARD_W,
-        windowHeight: CARD_H,
-        x: 0,
-        y: 0,
-      });
-
-      document.body.removeChild(container);
-
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = `BMA-Card-${member.membership_number || member.full_name}.png`;
-      a.click();
-    } catch (err) {
-      console.error('Download failed:', err);
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return '';
@@ -126,12 +82,287 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
 
   const fields = [
     { label: 'Membership No:', value: member.membership_number || '' },
-    { label: 'Name:', value: member.full_name || '' },
-    { label: 'Designation:', value: member.designation || '' },
-    { label: 'Area/District:', value: member.area_district || '' },
+    { label: 'Name:',          value: member.full_name          || '' },
+    { label: 'Designation:',   value: member.designation        || '' },
+    { label: 'Area/District:', value: member.area_district      || '' },
     { label: 'Date of Joining:', value: formatDate(member.approved_at) },
   ];
 
+  /* ─────────────────────────────────────────────────────────────────
+     Pure Canvas 2D download — no html2canvas, no transform issues
+  ───────────────────────────────────────────────────────────────── */
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const DPR = 3; // output resolution multiplier
+      const CW  = CARD_W * DPR;
+      const CH  = CARD_H * DPR;
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = CW;
+      canvas.height = CH;
+      const ctx = canvas.getContext('2d')!;
+      ctx.scale(DPR, DPR);
+
+      // ── Load all images in parallel ──
+      const [leaderImg, mapHeaderImg, mapCircleImg, memberImg] = await Promise.allSettled([
+        loadImg(LEADER_IMG),
+        loadImg(MAP_HEADER_IMG),
+        loadImg(MAP_CIRCLE_IMG),
+        photoUrl ? loadImg(photoUrl) : Promise.reject('no photo'),
+      ]);
+
+      const getImg = (r: PromiseSettledResult<HTMLImageElement>) =>
+        r.status === 'fulfilled' ? r.value : null;
+
+      // ── 1. Card background gradient ──
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, CARD_H);
+      bgGrad.addColorStop(0,    '#FF9933');
+      bgGrad.addColorStop(0.22, '#FF9933');
+      bgGrad.addColorStop(0.35, '#FFF5E0');
+      bgGrad.addColorStop(0.50, '#FFFFF0');
+      bgGrad.addColorStop(0.62, '#E8F5E0');
+      bgGrad.addColorStop(0.85, '#138808');
+      bgGrad.addColorStop(1,    '#0A6B04');
+      roundRect(ctx, 0, 0, CARD_W, CARD_H, 20);
+      ctx.fillStyle = bgGrad;
+      ctx.fill();
+      // clip card to rounded rect for everything inside
+      ctx.save();
+      roundRect(ctx, 0, 0, CARD_W, CARD_H, 20);
+      ctx.clip();
+
+      // ── 2. Orange header banner ──
+      const hdrGrad = ctx.createLinearGradient(0, 0, 0, 155);
+      hdrGrad.addColorStop(0,    '#E65C00');
+      hdrGrad.addColorStop(0.4,  '#F5821F');
+      hdrGrad.addColorStop(0.8,  '#FF9933');
+      hdrGrad.addColorStop(1,    '#FFB347');
+      ctx.fillStyle = hdrGrad;
+      ctx.fillRect(0, 0, CARD_W, 155);
+      ctx.strokeStyle = '#CC6600';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, 155); ctx.lineTo(CARD_W, 155); ctx.stroke();
+
+      // ── 3. Leader photo (left of header) ──
+      const lImg = getImg(leaderImg);
+      if (lImg) {
+        ctx.save();
+        roundRect(ctx, 10, 11, 155, 132, 6);
+        ctx.clip();
+        ctx.drawImage(lImg, 10, 11, 155, 132);
+        ctx.restore();
+      }
+
+      // ── 4. Map header image (right of header) ──
+      const mhImg = getImg(mapHeaderImg);
+      if (mhImg) {
+        ctx.save();
+        roundRect(ctx, CARD_W - 100, 15, 90, 124, 6);
+        ctx.clip();
+        ctx.drawImage(mhImg, CARD_W - 100, 15, 90, 124);
+        ctx.restore();
+      }
+
+      // ── 5. Header text ──
+      ctx.textAlign = 'center';
+      // Title
+      ctx.font = 'bold 32px Georgia, serif';
+      ctx.fillStyle = '#FFD700';
+      ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 4;
+      ctx.fillText('BHARTIYA MODI ARMY', CARD_W / 2, 60);
+      // Subtitle
+      ctx.font = '600 14px Georgia, serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 3;
+      ctx.fillText('— JAMMU & KASHMIR —', CARD_W / 2, 82);
+      ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+      // Blue badge
+      const badgeW = 200, badgeH = 26, badgeX = CARD_W / 2 - badgeW / 2, badgeY = 92;
+      roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 3);
+      ctx.fillStyle = '#1a3a6b'; ctx.fill();
+      ctx.font = 'bold 14px Georgia, serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.letterSpacing = '0.2em';
+      ctx.fillText('MEMBERSHIP CARD', CARD_W / 2, badgeY + 17);
+      ctx.letterSpacing = '0';
+
+      // ── 6. Member photo ──
+      const mPhotoX = 18, mPhotoY = 167, mPhotoW = 110, mPhotoH = 140;
+      ctx.strokeStyle = 'rgba(80,80,80,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      roundRect(ctx, mPhotoX, mPhotoY, mPhotoW, mPhotoH, 4);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const mpImg = getImg(memberImg);
+      if (mpImg) {
+        ctx.save();
+        roundRect(ctx, mPhotoX, mPhotoY, mPhotoW, mPhotoH, 4);
+        ctx.clip();
+        ctx.drawImage(mpImg, mPhotoX, mPhotoY, mPhotoW, mPhotoH);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = 'rgba(180,180,180,0.2)';
+        ctx.fill();
+        ctx.font = '11px Georgia, serif';
+        ctx.fillStyle = 'rgba(60,60,60,0.4)';
+        ctx.textAlign = 'center';
+        ctx.fillText('Photo', mPhotoX + mPhotoW / 2, mPhotoY + mPhotoH / 2);
+      }
+
+      // ── 7. Info fields ──
+      const fieldsX  = mPhotoX + mPhotoW + 18;
+      const fieldsW  = SEAL_LEFT - fieldsX - 10;  // stop before seal
+      const fieldStartY = 170;
+      const fieldGap    = 58;
+      ctx.textAlign = 'left';
+      fields.forEach(({ label, value }, i) => {
+        const y = fieldStartY + i * fieldGap;
+        // Label
+        ctx.font = 'bold 15px Georgia, serif';
+        ctx.fillStyle = '#1a2e6e';
+        ctx.fillText(label, fieldsX, y + 14);
+        const labelW = ctx.measureText(label).width;
+        // Underline
+        ctx.strokeStyle = '#4a5568'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(fieldsX + labelW + 6, y + 16);
+        ctx.lineTo(fieldsX + fieldsW, y + 16);
+        ctx.stroke();
+        // Value
+        ctx.font = 'bold 15px Georgia, serif';
+        ctx.fillStyle = '#111111';
+        const displayVal = value.toUpperCase();
+        // Truncate if too long
+        let txt = displayVal;
+        while (ctx.measureText(txt).width > fieldsW - labelW - 10 && txt.length > 0) {
+          txt = txt.slice(0, -1);
+        }
+        if (txt !== displayVal) txt = txt.slice(0, -1) + '…';
+        ctx.fillText(txt, fieldsX + labelW + 8, y + 13);
+      });
+
+      // ── 8. Bottom orange strip ──
+      const stripGrad = ctx.createLinearGradient(0, 0, CARD_W, 0);
+      stripGrad.addColorStop(0,    '#E65C00');
+      stripGrad.addColorStop(0.4,  '#F5821F');
+      stripGrad.addColorStop(0.7,  '#FF9933');
+      stripGrad.addColorStop(1,    '#FFB347');
+      ctx.fillStyle = stripGrad;
+      ctx.fillRect(0, CARD_H - 68, CARD_W, 68);
+      ctx.strokeStyle = '#CC6600'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, CARD_H - 68); ctx.lineTo(CARD_W, CARD_H - 68); ctx.stroke();
+      // Strip text
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 17px Georgia, serif';
+      ctx.fillStyle = '#FFD700';
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 4;
+      ctx.fillText('MODI ON MISSION', 18, CARD_H - 38);
+      ctx.font = '600 12px Georgia, serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+      ctx.fillText('— NATION FIRST —', 18, CARD_H - 20);
+
+      // ── 9. End clip (card rounded rect) ──
+      ctx.restore();
+
+      // ── 10. Circular seal — drawn OUTSIDE clip so it's never cut ──
+      const cx = SEAL_LEFT + SEAL_SIZE / 2;
+      const cy = SEAL_TOP  + SEAL_SIZE / 2;
+      const r  = SEAL_SIZE / 2;
+
+      // Outer orange circle
+      ctx.beginPath(); ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+      ctx.fillStyle = '#E65C00'; ctx.fill();
+      ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1.5 * (SEAL_SIZE / 100);
+      ctx.stroke();
+
+      // Dashed inner ring
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.88, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 0.8 * (SEAL_SIZE / 100);
+      ctx.setLineDash([2.5, 2]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // White inner circle
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.64, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff'; ctx.fill();
+
+      // Map image clipped to inner white circle
+      const mcImg = getImg(mapCircleImg);
+      if (mcImg) {
+        const imgR = r * 0.63;
+        ctx.save();
+        ctx.beginPath(); ctx.arc(cx, cy, imgR, 0, Math.PI * 2); ctx.clip();
+        ctx.drawImage(mcImg, cx - imgR, cy - imgR, imgR * 2, imgR * 2);
+        ctx.restore();
+      }
+
+      // Arc text — top: "BHARTIYA MODI ARMY"
+      ctx.save();
+      ctx.font = `bold ${7 * (SEAL_SIZE / 100)}px Georgia, serif`;
+      ctx.fillStyle = '#FFD700';
+      ctx.textAlign = 'center';
+      const topText = 'BHARTIYA MODI ARMY';
+      const topR = r * 0.76;
+      const topSpan = Math.PI * 0.72;
+      const topStart = -Math.PI / 2 - topSpan / 2;
+      const topStep = topSpan / (topText.length - 1);
+      for (let i = 0; i < topText.length; i++) {
+        const angle = topStart + i * topStep;
+        ctx.save();
+        ctx.translate(cx + topR * Math.cos(angle), cy + topR * Math.sin(angle));
+        ctx.rotate(angle + Math.PI / 2);
+        ctx.fillText(topText[i], 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Arc text — bottom: "JAMMU & KASHMIR"
+      ctx.save();
+      ctx.font = `600 ${6.5 * (SEAL_SIZE / 100)}px Georgia, serif`;
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      const botText = 'JAMMU & KASHMIR';
+      const botR = r * 0.86;
+      const botSpan = Math.PI * 0.60;
+      const botStart = Math.PI / 2 - botSpan / 2;
+      const botStep = botSpan / (botText.length - 1);
+      for (let i = 0; i < botText.length; i++) {
+        const angle = botStart + i * botStep;
+        ctx.save();
+        ctx.translate(cx + botR * Math.cos(angle), cy + botR * Math.sin(angle));
+        ctx.rotate(angle - Math.PI / 2);
+        ctx.fillText(botText[i], 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Stars
+      ctx.font = `${8 * (SEAL_SIZE / 100)}px Georgia, serif`;
+      ctx.fillStyle = '#FFD700';
+      ctx.textAlign = 'center';
+      ctx.fillText('★', cx - r * 0.76, cy + 3);
+      ctx.fillText('★', cx + r * 0.76, cy + 3);
+
+      // ── 11. Export ──
+      const a = document.createElement('a');
+      a.href     = canvas.toDataURL('image/png');
+      a.download = `BMA-Card-${member.membership_number || member.full_name}.png`;
+      a.click();
+
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  /* ─────────────────────────────────────────────────────────────────
+     JSX preview (unchanged visual)
+  ───────────────────────────────────────────────────────────────── */
   return (
     <div
       ref={wrapperRef}
@@ -161,14 +392,11 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             padding: '10px 16px', gap: '10px',
             borderBottom: '3px solid #CC6600',
           }}>
-            {/* Leader Photo */}
             <div style={{ flexShrink: 0, width: '155px', height: '132px', borderRadius: '6px', overflow: 'hidden' }}>
               <img src={LEADER_IMG} alt="Leader"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
               />
             </div>
-
-            {/* Centre title */}
             <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
               <div style={{ width: '32px', height: '32px', margin: '0 auto 2px auto', borderRadius: '4px', overflow: 'hidden', background: 'transparent' }}>
                 <img src="" alt="Logo"
@@ -194,8 +422,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
               }}>MEMBERSHIP CARD</div>
             </div>
-
-            {/* India Map — header */}
             <div style={{ flexShrink: 0, width: '90px', height: '124px', borderRadius: '6px', overflow: 'hidden' }}>
               <img src={MAP_HEADER_IMG} alt="India Map"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
@@ -210,7 +436,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             display: 'flex', alignItems: 'center',
             padding: '12px 18px 8px 18px', gap: '18px',
           }}>
-            {/* Member Photo */}
             <div style={{
               flexShrink: 0, width: '110px', height: '140px',
               background: 'rgba(180,180,180,0.2)',
@@ -229,8 +454,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 <span style={{ fontSize: '11px', color: 'rgba(60,60,60,0.4)', textAlign: 'center', lineHeight: 1.6, padding: '6px' }}>Photo</span>
               )}
             </div>
-
-            {/* Fields */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly', height: '100%' }}>
               {fields.map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
@@ -282,7 +505,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             height: `${SEAL_SIZE}px`,
             zIndex: 10,
           }}>
-            {/* SVG ring + arc text */}
             <svg viewBox="0 0 100 100" width={SEAL_SIZE} height={SEAL_SIZE}
               style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
               <defs>
@@ -301,8 +523,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               <text x="10" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
               <text x="90" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
             </svg>
-
-            {/* India map — centered inside seal */}
             <div style={{
               position: 'absolute',
               top: '50%', left: '50%',
