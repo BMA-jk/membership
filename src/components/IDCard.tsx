@@ -21,9 +21,8 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
   const CARD_H = 540;
 
   const SEAL_SIZE = 140;
-  // Absolute top/left so html2canvas never clips — equivalent to bottom:10px right:12px
-  const SEAL_TOP = CARD_H - SEAL_SIZE - 10;   // 540 - 140 - 10 = 390
-  const SEAL_LEFT = CARD_W - SEAL_SIZE - 12;  // 856 - 140 - 12 = 704
+  const SEAL_TOP = CARD_H - SEAL_SIZE - 10;   // 390
+  const SEAL_LEFT = CARD_W - SEAL_SIZE - 12;  // 704
 
   useEffect(() => {
     [LEADER_IMG, MAP_HEADER_IMG, MAP_CIRCLE_IMG].forEach((src) => {
@@ -49,7 +48,40 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
     setDownloading(true);
     try {
       const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(cardRef.current, {
+
+      // Clone the card into a fixed offscreen container so html2canvas
+      // always sees it at (0,0) with no transform/scale — this prevents
+      // the seal (and any other element) from being misaligned in the PNG.
+      const container = document.createElement('div');
+      container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: ${CARD_W}px;
+        height: ${CARD_H}px;
+        overflow: visible;
+        pointer-events: none;
+        z-index: -9999;
+        opacity: 0;
+      `;
+
+      const clone = cardRef.current.cloneNode(true) as HTMLElement;
+      // Remove any transform/scale from the clone so it renders at true size
+      clone.style.transform = 'none';
+      clone.style.transformOrigin = 'top left';
+      clone.style.width = `${CARD_W}px`;
+      clone.style.height = `${CARD_H}px`;
+      clone.style.position = 'relative';
+      clone.style.top = '0';
+      clone.style.left = '0';
+
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
+      // Small delay to let images inside the clone settle
+      await new Promise((r) => setTimeout(r, 100));
+
+      const canvas = await html2canvas(clone, {
         scale: 4,
         useCORS: true,
         allowTaint: true,
@@ -60,7 +92,14 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
         height: CARD_H,
         scrollX: 0,
         scrollY: 0,
+        windowWidth: CARD_W,
+        windowHeight: CARD_H,
+        x: 0,
+        y: 0,
       });
+
+      document.body.removeChild(container);
+
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
       a.download = `BMA-Card-${member.membership_number || member.full_name}.png`;
@@ -131,7 +170,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
 
             {/* Centre title */}
             <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
-              {/* Invisible 1:1 logo placeholder — set src to your logo path to activate */}
               <div style={{ width: '32px', height: '32px', margin: '0 auto 2px auto', borderRadius: '4px', overflow: 'hidden', background: 'transparent' }}>
                 <img src="" alt="Logo"
                   style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
@@ -235,7 +273,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             <div style={{ width: `${SEAL_SIZE + 12}px`, flexShrink: 0 }} />
           </div>
 
-          {/* ── CIRCULAR SEAL — top/left absolute so html2canvas never clips it ── */}
+          {/* ── CIRCULAR SEAL ── */}
           <div style={{
             position: 'absolute',
             top: `${SEAL_TOP}px`,
@@ -264,7 +302,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               <text x="90" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
             </svg>
 
-            {/* India map — plain CSS div, centered inside seal */}
+            {/* India map — centered inside seal */}
             <div style={{
               position: 'absolute',
               top: '50%', left: '50%',
