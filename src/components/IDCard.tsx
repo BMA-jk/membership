@@ -262,8 +262,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       }
 
       // --- TOP ARC TEXT: "BHARTIYA MODI ARMY" ---
-      // Angles go from top-left to top-right (-PI/2 ± span/2)
-      // rotate = angle + PI/2  → letters stand upright, baseline faces outward
       ctx.save();
       ctx.font = `bold ${7 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#FFD700';
@@ -284,9 +282,8 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       ctx.restore();
 
       // --- BOTTOM ARC TEXT: "JAMMU & KASHMIR" ---
-      // Angles go LEFT → RIGHT along the bottom: from (PI/2 - span/2) to (PI/2 + span/2)
-      // rotate = angle - PI/2  → letters stand upright with baseline facing outward (downward)
-      // This is the mirror of the top arc and produces correctly-oriented text.
+      // Sweep RIGHT → LEFT along the bottom (from PI/2+span/2 down to PI/2-span/2).
+      // rotate = angle + PI/2 → letter tops face outward (downward), text reads L→R correctly.
       ctx.save();
       ctx.font = `600 ${6.5 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#ffffff';
@@ -294,13 +291,14 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       const botText  = 'JAMMU & KASHMIR';
       const botR     = r * 0.76;
       const botSpan  = Math.PI * 0.60;
-      const botStart = Math.PI / 2 - botSpan / 2;   // left side of bottom arc
-      const botStep  = botSpan / (botText.length - 1);
+      // Start from right side of bottom arc, sweep to left (so text reads left→right when rendered)
+      const botStart = Math.PI / 2 + botSpan / 2;
+      const botStep  = -botSpan / (botText.length - 1);  // negative = sweeping right→left
       for (let i = 0; i < botText.length; i++) {
-        const angle = botStart + i * botStep;        // sweep left → right
+        const angle = botStart + i * botStep;
         ctx.save();
         ctx.translate(cx + botR * Math.cos(angle), cy + botR * Math.sin(angle));
-        ctx.rotate(angle - Math.PI / 2);             // upright, baseline outward
+        ctx.rotate(angle + Math.PI / 2);  // tops face outward → correct upright orientation
         ctx.fillText(botText[i], 0, 0);
         ctx.restore();
       }
@@ -464,15 +462,16 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
               <defs>
                 {/*
-                  TOP arc: M left→right along top half (sweep=1 = clockwise).
-                  textPath follows path direction, baseline on inside of circle → text reads L→R correctly.
+                  TOP arc: left→right along top half (sweep=1 clockwise).
+                  Text baseline on inside → letters read L→R correctly.
                 */}
                 <path id="sealTopArc" d="M 13 50 A 37 37 0 0 1 87 50" />
                 {/*
-                  BOTTOM arc: M left→right along bottom half (large-arc=1, sweep=1 = clockwise going under).
-                  baseline is on the INSIDE of the circle (top of each letter faces center) → text reads L→R correctly.
+                  BOTTOM arc: right→left along bottom half (sweep=0 counterclockwise).
+                  Going R→L means the textPath direction is reversed, so text reads L→R
+                  with baseline on outside (bottom) — correct stamp orientation.
                 */}
-                <path id="sealBotArc" d="M 12 56 A 43 43 0 0 0 88 56" />
+                <path id="sealBotArc" d="M 88 56 A 43 43 0 0 0 12 56" />
               </defs>
               <circle cx="50" cy="50" r="49" fill="#E65C00" stroke="#FFD700" strokeWidth="1.5" />
               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" strokeDasharray="2.5,2" />
