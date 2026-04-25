@@ -23,7 +23,6 @@ function loadImg(src: string): Promise<HTMLImageElement> {
     img.crossOrigin = 'anonymous';
     img.onload  = () => resolve(img);
     img.onerror = () => reject(new Error(`Failed to load ${src}`));
-    // Bust cache so CORS headers are respected
     img.src = src.startsWith('http') ? src + (src.includes('?') ? '&' : '?') + '_t=' + Date.now() : src;
   });
 }
@@ -88,23 +87,16 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
     { label: 'Date of Joining:', value: formatDate(member.approved_at) },
   ];
 
-  /* ─────────────────────────────────────────────────────────────────
-     Pure Canvas 2D download — no html2canvas, no transform issues
-  ───────────────────────────────────────────────────────────────── */
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const DPR = 3; // output resolution multiplier
-      const CW  = CARD_W * DPR;
-      const CH  = CARD_H * DPR;
-
+      const DPR = 3;
       const canvas = document.createElement('canvas');
-      canvas.width  = CW;
-      canvas.height = CH;
+      canvas.width  = CARD_W * DPR;
+      canvas.height = CARD_H * DPR;
       const ctx = canvas.getContext('2d')!;
       ctx.scale(DPR, DPR);
 
-      // ── Load all images in parallel ──
       const [leaderImg, mapHeaderImg, sealLogoImg, memberImg] = await Promise.allSettled([
         loadImg(LEADER_IMG),
         loadImg(MAP_HEADER_IMG),
@@ -115,7 +107,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       const getImg = (r: PromiseSettledResult<HTMLImageElement>) =>
         r.status === 'fulfilled' ? r.value : null;
 
-      // ── 1. Card background gradient ──
+      // 1. Card background
       const bgGrad = ctx.createLinearGradient(0, 0, 0, CARD_H);
       bgGrad.addColorStop(0,    '#FF9933');
       bgGrad.addColorStop(0.22, '#FF9933');
@@ -127,147 +119,121 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       roundRect(ctx, 0, 0, CARD_W, CARD_H, 20);
       ctx.fillStyle = bgGrad;
       ctx.fill();
-      // clip card to rounded rect for everything inside
       ctx.save();
       roundRect(ctx, 0, 0, CARD_W, CARD_H, 20);
       ctx.clip();
 
-      // ── 2. Orange header banner ──
+      // 2. Orange header banner
       const hdrGrad = ctx.createLinearGradient(0, 0, 0, 155);
-      hdrGrad.addColorStop(0,    '#E65C00');
-      hdrGrad.addColorStop(0.4,  '#F5821F');
-      hdrGrad.addColorStop(0.8,  '#FF9933');
-      hdrGrad.addColorStop(1,    '#FFB347');
+      hdrGrad.addColorStop(0,   '#E65C00');
+      hdrGrad.addColorStop(0.4, '#F5821F');
+      hdrGrad.addColorStop(0.8, '#FF9933');
+      hdrGrad.addColorStop(1,   '#FFB347');
       ctx.fillStyle = hdrGrad;
       ctx.fillRect(0, 0, CARD_W, 155);
-      ctx.strokeStyle = '#CC6600';
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#CC6600'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(0, 155); ctx.lineTo(CARD_W, 155); ctx.stroke();
 
-      // ── 3. Leader photo (left of header) ──
+      // 3. Leader photo
       const lImg = getImg(leaderImg);
       if (lImg) {
         ctx.save();
-        roundRect(ctx, 10, 11, 155, 132, 6);
-        ctx.clip();
+        roundRect(ctx, 10, 11, 155, 132, 6); ctx.clip();
         ctx.drawImage(lImg, 10, 11, 155, 132);
         ctx.restore();
       }
 
-      // ── 4. Map header image (right of header) ──
+      // 4. Map header image
       const mhImg = getImg(mapHeaderImg);
       if (mhImg) {
         ctx.save();
-        roundRect(ctx, CARD_W - 100, 15, 90, 124, 6);
-        ctx.clip();
+        roundRect(ctx, CARD_W - 100, 15, 90, 124, 6); ctx.clip();
         ctx.drawImage(mhImg, CARD_W - 100, 15, 90, 124);
         ctx.restore();
       }
 
-      // ── 5. Header text ──
+      // 5. Header text
       ctx.textAlign = 'center';
-      // Title
       ctx.font = 'bold 32px Georgia, serif';
       ctx.fillStyle = '#FFD700';
       ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 4;
       ctx.fillText('BHARTIYA MODI ARMY', CARD_W / 2, 60);
-      // Subtitle
       ctx.font = '600 14px Georgia, serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowBlur = 3;
+      ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 3;
       ctx.fillText('— JAMMU & KASHMIR —', CARD_W / 2, 82);
       ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
-      // Blue badge
-      const badgeW = 200, badgeH = 26, badgeX = CARD_W / 2 - badgeW / 2, badgeY = 92;
+      const badgeW = 200, badgeH = 26, badgeX = CARD_W / 2 - 100, badgeY = 92;
       roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 3);
       ctx.fillStyle = '#1a3a6b'; ctx.fill();
-      ctx.font = 'bold 14px Georgia, serif';
-      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px Georgia, serif'; ctx.fillStyle = '#ffffff';
       ctx.letterSpacing = '0.2em';
       ctx.fillText('MEMBERSHIP CARD', CARD_W / 2, badgeY + 17);
       ctx.letterSpacing = '0';
 
-      // ── 6. Member photo ──
+      // 6. Member photo
       const mPhotoX = 18, mPhotoY = 167, mPhotoW = 110, mPhotoH = 140;
-      ctx.strokeStyle = 'rgba(80,80,80,0.35)';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(80,80,80,0.35)'; ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 3]);
-      roundRect(ctx, mPhotoX, mPhotoY, mPhotoW, mPhotoH, 4);
-      ctx.stroke();
+      roundRect(ctx, mPhotoX, mPhotoY, mPhotoW, mPhotoH, 4); ctx.stroke();
       ctx.setLineDash([]);
       const mpImg = getImg(memberImg);
       if (mpImg) {
         ctx.save();
-        roundRect(ctx, mPhotoX, mPhotoY, mPhotoW, mPhotoH, 4);
-        ctx.clip();
+        roundRect(ctx, mPhotoX, mPhotoY, mPhotoW, mPhotoH, 4); ctx.clip();
         ctx.drawImage(mpImg, mPhotoX, mPhotoY, mPhotoW, mPhotoH);
         ctx.restore();
       } else {
-        ctx.fillStyle = 'rgba(180,180,180,0.2)';
-        ctx.fill();
-        ctx.font = '11px Georgia, serif';
-        ctx.fillStyle = 'rgba(60,60,60,0.4)';
+        ctx.fillStyle = 'rgba(180,180,180,0.2)'; ctx.fill();
+        ctx.font = '11px Georgia, serif'; ctx.fillStyle = 'rgba(60,60,60,0.4)';
         ctx.textAlign = 'center';
         ctx.fillText('Photo', mPhotoX + mPhotoW / 2, mPhotoY + mPhotoH / 2);
       }
 
-      // ── 7. Info fields ──
-      const fieldsX  = mPhotoX + mPhotoW + 18;
-      const fieldsW  = SEAL_LEFT - fieldsX - 10;  // stop before seal
-      const fieldStartY = 170;
-      const fieldGap    = 58;
+      // 7. Info fields
+      const fieldsX = mPhotoX + mPhotoW + 18;
+      const fieldsW = SEAL_LEFT - fieldsX - 10;
+      const fieldStartY = 170, fieldGap = 58;
       ctx.textAlign = 'left';
       fields.forEach(({ label, value }, i) => {
         const y = fieldStartY + i * fieldGap;
-        // Label
-        ctx.font = 'bold 15px Georgia, serif';
-        ctx.fillStyle = '#1a2e6e';
+        ctx.font = 'bold 15px Georgia, serif'; ctx.fillStyle = '#1a2e6e';
         ctx.fillText(label, fieldsX, y + 14);
         const labelW = ctx.measureText(label).width;
-        // Underline
         ctx.strokeStyle = '#4a5568'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
         ctx.beginPath();
         ctx.moveTo(fieldsX + labelW + 6, y + 16);
         ctx.lineTo(fieldsX + fieldsW, y + 16);
         ctx.stroke();
-        // Value
-        ctx.font = 'bold 15px Georgia, serif';
-        ctx.fillStyle = '#111111';
+        ctx.font = 'bold 15px Georgia, serif'; ctx.fillStyle = '#111111';
         const displayVal = value.toUpperCase();
-        // Truncate if too long
         let txt = displayVal;
-        while (ctx.measureText(txt).width > fieldsW - labelW - 10 && txt.length > 0) {
-          txt = txt.slice(0, -1);
-        }
+        while (ctx.measureText(txt).width > fieldsW - labelW - 10 && txt.length > 0) txt = txt.slice(0, -1);
         if (txt !== displayVal) txt = txt.slice(0, -1) + '…';
         ctx.fillText(txt, fieldsX + labelW + 8, y + 13);
       });
 
-      // ── 8. Bottom orange strip ──
+      // 8. Bottom orange strip
       const stripGrad = ctx.createLinearGradient(0, 0, CARD_W, 0);
-      stripGrad.addColorStop(0,    '#E65C00');
-      stripGrad.addColorStop(0.4,  '#F5821F');
-      stripGrad.addColorStop(0.7,  '#FF9933');
-      stripGrad.addColorStop(1,    '#FFB347');
+      stripGrad.addColorStop(0,   '#E65C00');
+      stripGrad.addColorStop(0.4, '#F5821F');
+      stripGrad.addColorStop(0.7, '#FF9933');
+      stripGrad.addColorStop(1,   '#FFB347');
       ctx.fillStyle = stripGrad;
       ctx.fillRect(0, CARD_H - 68, CARD_W, 68);
       ctx.strokeStyle = '#CC6600'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(0, CARD_H - 68); ctx.lineTo(CARD_W, CARD_H - 68); ctx.stroke();
-      // Strip text
       ctx.textAlign = 'left';
-      ctx.font = 'bold 17px Georgia, serif';
-      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 17px Georgia, serif'; ctx.fillStyle = '#FFD700';
       ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 4;
       ctx.fillText('MODI ON MISSION', 18, CARD_H - 38);
-      ctx.font = '600 12px Georgia, serif';
-      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 12px Georgia, serif'; ctx.fillStyle = '#ffffff';
       ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
       ctx.fillText('— NATION FIRST —', 18, CARD_H - 20);
 
-      // ── 9. End clip (card rounded rect) ──
+      // 9. End card clip
       ctx.restore();
 
-      // ── 10. Circular seal — drawn OUTSIDE clip so it's never cut ──
+      // 10. Circular seal
       const cx = SEAL_LEFT + SEAL_SIZE / 2;
       const cy = SEAL_TOP  + SEAL_SIZE / 2;
       const r  = SEAL_SIZE / 2;
@@ -275,22 +241,19 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       // Outer orange circle
       ctx.beginPath(); ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
       ctx.fillStyle = '#E65C00'; ctx.fill();
-      ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1.5 * (SEAL_SIZE / 100);
-      ctx.stroke();
+      ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1.5 * (SEAL_SIZE / 100); ctx.stroke();
 
       // Dashed inner ring
       ctx.beginPath(); ctx.arc(cx, cy, r * 0.88, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(255,255,255,0.4)';
       ctx.lineWidth = 0.8 * (SEAL_SIZE / 100);
-      ctx.setLineDash([2.5, 2]);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.setLineDash([2.5, 2]); ctx.stroke(); ctx.setLineDash([]);
 
       // White inner circle
       ctx.beginPath(); ctx.arc(cx, cy, r * 0.64, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff'; ctx.fill();
 
-      // Logo image clipped to inner white circle
+      // Logo clipped to inner circle
       const slImg = getImg(sealLogoImg);
       if (slImg) {
         const imgR = r * 0.63;
@@ -300,7 +263,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
         ctx.restore();
       }
 
-      // Arc text — top: "BHARTIYA MODI ARMY"
+      // Arc text — TOP: "BHARTIYA MODI ARMY" (reads left→right along top arc)
       ctx.save();
       ctx.font = `bold ${7 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#FFD700';
@@ -320,34 +283,39 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       }
       ctx.restore();
 
-      // Arc text — bottom: "JAMMU & KASHMIR"
+      // Arc text — BOTTOM: "JAMMU & KASHMIR"
+      // Draw characters right→left along the bottom arc so they read correctly
+      // Each char is rotated with +PI/2 offset so it stands upright (not flipped)
       ctx.save();
       ctx.font = `600 ${6.5 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       const botText = 'JAMMU & KASHMIR';
-      const botR = r * 0.86;
+      const botR = r * 0.76;
       const botSpan = Math.PI * 0.60;
-      const botStart = Math.PI / 2 - botSpan / 2;
-      const botStep = botSpan / (botText.length - 1);
-      for (let i = 0; i < botText.length; i++) {
-        const angle = botStart + i * botStep;
+      // Start from bottom-right, sweep to bottom-left (i.e. angle goes from +PI/2+half to +PI/2-half)
+      // But we reverse the text so first char is drawn at the left end
+      const botChars = botText.split('').reverse();
+      const botStart = Math.PI / 2 + botSpan / 2;
+      const botStep = botSpan / (botChars.length - 1);
+      for (let i = 0; i < botChars.length; i++) {
+        const angle = botStart - i * botStep;  // sweep right→left
         ctx.save();
         ctx.translate(cx + botR * Math.cos(angle), cy + botR * Math.sin(angle));
-        ctx.rotate(angle - Math.PI / 2);
-        ctx.fillText(botText[i], 0, 0);
+        ctx.rotate(angle + Math.PI / 2);  // same as top: +PI/2 keeps chars upright
+        ctx.fillText(botChars[i], 0, 0);
         ctx.restore();
       }
       ctx.restore();
 
-      // Stars
+      // Stars on left and right of seal
       ctx.font = `${8 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#FFD700';
       ctx.textAlign = 'center';
       ctx.fillText('★', cx - r * 0.76, cy + 3);
       ctx.fillText('★', cx + r * 0.76, cy + 3);
 
-      // ── 11. Export ──
+      // 11. Export
       const a = document.createElement('a');
       a.href     = canvas.toDataURL('image/png');
       a.download = `BMA-Card-${member.membership_number || member.full_name}.png`;
@@ -360,9 +328,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
     }
   };
 
-  /* ─────────────────────────────────────────────────────────────────
-     JSX preview (unchanged visual)
-  ───────────────────────────────────────────────────────────────── */
   return (
     <div
       ref={wrapperRef}
@@ -384,7 +349,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             background: 'linear-gradient(180deg, #FF9933 0%, #FF9933 22%, #FFF5E0 35%, #FFFFF0 50%, #E8F5E0 62%, #138808 85%, #0A6B04 100%)',
           }}
         >
-          {/* ── ORANGE HEADER BANNER ── */}
+          {/* ORANGE HEADER BANNER */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: '155px',
             background: 'linear-gradient(180deg, #E65C00 0%, #F5821F 40%, #FF9933 80%, #FFB347 100%)',
@@ -398,12 +363,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               />
             </div>
             <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
-              <div style={{ width: '32px', height: '32px', margin: '0 auto 2px auto', borderRadius: '4px', overflow: 'hidden', background: 'transparent' }}>
-                <img src="" alt="Logo"
-                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                />
-              </div>
               <div style={{
                 fontFamily: "'Georgia', serif", fontWeight: 700, fontSize: '32px',
                 color: '#FFD700', textShadow: '1px 1px 0 #8B4513, 2px 2px 4px rgba(0,0,0,0.6)',
@@ -429,7 +388,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             </div>
           </div>
 
-          {/* ── CARD BODY ── */}
+          {/* CARD BODY */}
           <div style={{
             position: 'absolute',
             top: '155px', left: 0, right: 0, bottom: '68px',
@@ -474,19 +433,17 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             </div>
           </div>
 
-          {/* ── BOTTOM ORANGE STRIP ── */}
+          {/* BOTTOM ORANGE STRIP */}
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0, height: '68px',
             background: 'linear-gradient(90deg, #E65C00 0%, #F5821F 40%, #FF9933 70%, #FFB347 100%)',
             borderTop: '3px solid #CC6600',
-            display: 'flex', alignItems: 'center',
-            padding: '0 18px',
+            display: 'flex', alignItems: 'center', padding: '0 18px',
           }}>
             <div style={{ flex: 1 }}>
               <div style={{
                 fontFamily: "'Georgia', serif", fontWeight: 700, fontSize: '17px',
-                color: '#FFD700', textShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                letterSpacing: '0.04em',
+                color: '#FFD700', textShadow: '0 1px 4px rgba(0,0,0,0.5)', letterSpacing: '0.04em',
               }}>MODI ON MISSION</div>
               <div style={{
                 fontFamily: "'Georgia', serif", fontSize: '12px',
@@ -496,7 +453,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             <div style={{ width: `${SEAL_SIZE + 12}px`, flexShrink: 0 }} />
           </div>
 
-          {/* ── CIRCULAR SEAL ── */}
+          {/* CIRCULAR SEAL — SVX preview uses botArc going right→left so text is upright */}
           <div style={{
             position: 'absolute',
             top: `${SEAL_TOP}px`,
@@ -508,16 +465,18 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             <svg viewBox="0 0 100 100" width={SEAL_SIZE} height={SEAL_SIZE}
               style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
               <defs>
+                {/* Top arc: left→right along top half */}
                 <path id="topArc2" d="M 13 50 A 37 37 0 0 1 87 50" />
-                <path id="botArc2" d="M 7 50 A 43 43 0 0 0 93 50" />
+                {/* Bottom arc: right→left along bottom half — sweep-flag=0 makes text read correctly */}
+                <path id="botArc2" d="M 86 57 A 43 43 0 0 1 14 57" />
               </defs>
               <circle cx="50" cy="50" r="49" fill="#E65C00" stroke="#FFD700" strokeWidth="1.5" />
               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" strokeDasharray="2.5,2" />
               <circle cx="50" cy="50" r="32" fill="#ffffff" />
-              <text fontFamily="Georgia,serif" fontWeight="700" fontSize="8" fill="#FFD700" letterSpacing="0.5">
+              <text fontFamily="Georgia,serif" fontWeight="700" fontSize="7.5" fill="#FFD700" letterSpacing="0.3">
                 <textPath xlinkHref="#topArc2" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
               </text>
-              <text fontFamily="Georgia,serif" fontWeight="600" fontSize="8" fill="#ffffff" letterSpacing="0.5">
+              <text fontFamily="Georgia,serif" fontWeight="600" fontSize="7" fill="#ffffff" letterSpacing="0.3">
                 <textPath xlinkHref="#botArc2" startOffset="50%" textAnchor="middle">JAMMU &amp; KASHMIR</textPath>
               </text>
               <text x="10" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
@@ -542,7 +501,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
         </div>
       </div>
 
-      {/* ── DISCLAIMER ── */}
+      {/* DISCLAIMER */}
       <div style={{
         maxWidth: `${CARD_W * scale}px`, width: '100%',
         background: '#f8f9fa', border: '1px solid #dee2e6',
@@ -556,7 +515,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
         </p>
       </div>
 
-      {/* ── BUTTONS ── */}
+      {/* BUTTONS */}
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {onClose && (
           <button type="button" onClick={onClose}
