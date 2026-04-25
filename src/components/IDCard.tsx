@@ -459,7 +459,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
               <defs>
                 <path id="sealTopArc" d="M 13 50 A 37 37 0 0 1 87 50" />
-                <path id="sealBotArc" d="M 20 80 A 35 35 0 0 0 80 80" />
+                <path id="sealBotArc" d="M 15 72 A 40 40 0 0 0 85 72" />
               </defs>
               <circle cx="50" cy="50" r="49" fill="#E65C00" stroke="#FFD700" strokeWidth="1.5" />
               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" strokeDasharray="2.5,2" />
