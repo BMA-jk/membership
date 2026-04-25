@@ -8,7 +8,7 @@ interface Props {
 
 const LEADER_IMG = '/leader.png';
 const MAP_HEADER_IMG = '/indian map header.png';
-const MAP_CIRCLE_IMG = '/indian map circle.png';
+const SEAL_LOGO_IMG = '/logo-removebg-preview.png';
 
 const CARD_W = 856;
 const CARD_H = 540;
@@ -51,7 +51,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
   const [scale, setScale]             = useState(1);
 
   useEffect(() => {
-    [LEADER_IMG, MAP_HEADER_IMG, MAP_CIRCLE_IMG].forEach((src) => {
+    [LEADER_IMG, MAP_HEADER_IMG, SEAL_LOGO_IMG].forEach((src) => {
       const img = new Image(); img.src = src;
     });
   }, []);
@@ -105,10 +105,10 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       ctx.scale(DPR, DPR);
 
       // ── Load all images in parallel ──
-      const [leaderImg, mapHeaderImg, mapCircleImg, memberImg] = await Promise.allSettled([
+      const [leaderImg, mapHeaderImg, sealLogoImg, memberImg] = await Promise.allSettled([
         loadImg(LEADER_IMG),
         loadImg(MAP_HEADER_IMG),
-        loadImg(MAP_CIRCLE_IMG),
+        loadImg(SEAL_LOGO_IMG),
         photoUrl ? loadImg(photoUrl) : Promise.reject('no photo'),
       ]);
 
@@ -290,13 +290,13 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       ctx.beginPath(); ctx.arc(cx, cy, r * 0.64, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff'; ctx.fill();
 
-      // Map image clipped to inner white circle
-      const mcImg = getImg(mapCircleImg);
-      if (mcImg) {
+      // Logo image clipped to inner white circle
+      const slImg = getImg(sealLogoImg);
+      if (slImg) {
         const imgR = r * 0.63;
         ctx.save();
         ctx.beginPath(); ctx.arc(cx, cy, imgR, 0, Math.PI * 2); ctx.clip();
-        ctx.drawImage(mcImg, cx - imgR, cy - imgR, imgR * 2, imgR * 2);
+        ctx.drawImage(slImg, cx - imgR, cy - imgR, imgR * 2, imgR * 2);
         ctx.restore();
       }
 
@@ -532,7 +532,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               overflow: 'hidden',
               zIndex: 2,
             }}>
-              <img src={MAP_CIRCLE_IMG} alt="India"
+              <img src={SEAL_LOGO_IMG} alt="BMA Logo"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
                 crossOrigin="anonymous"
               />
