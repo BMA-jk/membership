@@ -288,7 +288,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       ctx.textAlign = 'center';
       const botText  = 'JAMMU & KASHMIR';
       const botR     = r * 0.76;
-      const botSpan  = Math.PI * 0.60;
+      const botSpan  = Math.PI * 0.72;
       const botStart = Math.PI / 2 - botSpan / 2;
       const botStep  = botSpan / (botText.length - 1);
       for (let i = 0; i < botText.length; i++) {
