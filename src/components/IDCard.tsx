@@ -16,7 +16,6 @@ const SEAL_SIZE = 140;
 const SEAL_TOP  = CARD_H - SEAL_SIZE - 10;  // 390
 const SEAL_LEFT = CARD_W - SEAL_SIZE - 12;  // 704
 
-/** Load an image and return an HTMLImageElement (CORS-safe) */
 function loadImg(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -27,7 +26,6 @@ function loadImg(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Draw rounded rectangle path */
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -263,7 +261,9 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
         ctx.restore();
       }
 
-      // Arc text — TOP: "BHARTIYA MODI ARMY" (reads left→right along top arc)
+      // --- TOP ARC TEXT: "BHARTIYA MODI ARMY" ---
+      // Angles go from top-left to top-right (-PI/2 ± span/2)
+      // rotate = angle + PI/2  → letters stand upright, baseline faces outward
       ctx.save();
       ctx.font = `bold ${7 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#FFD700';
@@ -272,7 +272,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       const topR = r * 0.76;
       const topSpan = Math.PI * 0.72;
       const topStart = -Math.PI / 2 - topSpan / 2;
-      const topStep = topSpan / (topText.length - 1);
+      const topStep  = topSpan / (topText.length - 1);
       for (let i = 0; i < topText.length; i++) {
         const angle = topStart + i * topStep;
         ctx.save();
@@ -283,27 +283,25 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       }
       ctx.restore();
 
-      // Arc text — BOTTOM: "JAMMU & KASHMIR"
-      // Draw characters right→left along the bottom arc so they read correctly
-      // Each char is rotated with +PI/2 offset so it stands upright (not flipped)
+      // --- BOTTOM ARC TEXT: "JAMMU & KASHMIR" ---
+      // Angles go LEFT → RIGHT along the bottom: from (PI/2 - span/2) to (PI/2 + span/2)
+      // rotate = angle - PI/2  → letters stand upright with baseline facing outward (downward)
+      // This is the mirror of the top arc and produces correctly-oriented text.
       ctx.save();
       ctx.font = `600 ${6.5 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
-      const botText = 'JAMMU & KASHMIR';
-      const botR = r * 0.76;
-      const botSpan = Math.PI * 0.60;
-      // Start from bottom-right, sweep to bottom-left (i.e. angle goes from +PI/2+half to +PI/2-half)
-      // But we reverse the text so first char is drawn at the left end
-      const botChars = botText.split('').reverse();
-      const botStart = Math.PI / 2 + botSpan / 2;
-      const botStep = botSpan / (botChars.length - 1);
-      for (let i = 0; i < botChars.length; i++) {
-        const angle = botStart - i * botStep;  // sweep right→left
+      const botText  = 'JAMMU & KASHMIR';
+      const botR     = r * 0.76;
+      const botSpan  = Math.PI * 0.60;
+      const botStart = Math.PI / 2 - botSpan / 2;   // left side of bottom arc
+      const botStep  = botSpan / (botText.length - 1);
+      for (let i = 0; i < botText.length; i++) {
+        const angle = botStart + i * botStep;        // sweep left → right
         ctx.save();
         ctx.translate(cx + botR * Math.cos(angle), cy + botR * Math.sin(angle));
-        ctx.rotate(angle + Math.PI / 2);  // same as top: +PI/2 keeps chars upright
-        ctx.fillText(botChars[i], 0, 0);
+        ctx.rotate(angle - Math.PI / 2);             // upright, baseline outward
+        ctx.fillText(botText[i], 0, 0);
         ctx.restore();
       }
       ctx.restore();
@@ -453,7 +451,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             <div style={{ width: `${SEAL_SIZE + 12}px`, flexShrink: 0 }} />
           </div>
 
-          {/* CIRCULAR SEAL — SVX preview uses botArc going right→left so text is upright */}
+          {/* CIRCULAR SEAL (SVG preview) */}
           <div style={{
             position: 'absolute',
             top: `${SEAL_TOP}px`,
@@ -465,19 +463,25 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
             <svg viewBox="0 0 100 100" width={SEAL_SIZE} height={SEAL_SIZE}
               style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
               <defs>
-                {/* Top arc: left→right along top half */}
-                <path id="topArc2" d="M 13 50 A 37 37 0 0 1 87 50" />
-                {/* Bottom arc: right→left along bottom half — sweep-flag=0 makes text read correctly */}
-                <path id="botArc2" d="M 86 57 A 43 43 0 0 1 14 57" />
+                {/*
+                  TOP arc: M left→right along top half (sweep=1 = clockwise).
+                  textPath follows path direction, baseline on inside of circle → text reads L→R correctly.
+                */}
+                <path id="sealTopArc" d="M 13 50 A 37 37 0 0 1 87 50" />
+                {/*
+                  BOTTOM arc: M left→right along bottom half (large-arc=1, sweep=1 = clockwise going under).
+                  baseline is on the INSIDE of the circle (top of each letter faces center) → text reads L→R correctly.
+                */}
+                <path id="sealBotArc" d="M 12 56 A 43 43 0 0 0 88 56" />
               </defs>
               <circle cx="50" cy="50" r="49" fill="#E65C00" stroke="#FFD700" strokeWidth="1.5" />
               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" strokeDasharray="2.5,2" />
               <circle cx="50" cy="50" r="32" fill="#ffffff" />
               <text fontFamily="Georgia,serif" fontWeight="700" fontSize="7.5" fill="#FFD700" letterSpacing="0.3">
-                <textPath xlinkHref="#topArc2" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
+                <textPath xlinkHref="#sealTopArc" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
               </text>
               <text fontFamily="Georgia,serif" fontWeight="600" fontSize="7" fill="#ffffff" letterSpacing="0.3">
-                <textPath xlinkHref="#botArc2" startOffset="50%" textAnchor="middle">JAMMU &amp; KASHMIR</textPath>
+                <textPath xlinkHref="#sealBotArc" startOffset="50%" textAnchor="middle">JAMMU &amp; KASHMIR</textPath>
               </text>
               <text x="10" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
               <text x="90" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
