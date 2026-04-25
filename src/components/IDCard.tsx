@@ -262,7 +262,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       }
 
       // --- TOP ARC TEXT: "BHARTIYA MODI ARMY" ---
-      // Sweep left→right along top. rotate(angle + PI/2) → letter tops face outward (upward). Correct.
       ctx.save();
       ctx.font = `bold ${7 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#FFD700';
@@ -285,7 +284,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       // --- BOTTOM ARC TEXT: "JAMMU & KASHMIR" ---
       // Sweep right→left (start from right side of bottom arc, step negatively toward left).
       // rotate(angle + PI/2) → letter tops face inward (toward center = upward for bottom arc).
-      // This produces correct L→R reading text sitting in the bottom orange ring.
       ctx.save();
       ctx.font = `600 ${6.5 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#ffffff';
@@ -293,7 +291,6 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       const botText  = 'JAMMU & KASHMIR';
       const botR     = r * 0.76;
       const botSpan  = Math.PI * 0.60;
-      // Start from the RIGHT end of the bottom arc and sweep LEFT (negative step)
       const botStart = Math.PI / 2 + botSpan / 2;
       const botStep  = -botSpan / (botText.length - 1);
       for (let i = 0; i < botText.length; i++) {
@@ -465,16 +462,18 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               <defs>
                 {/*
                   TOP arc: left→right along top half (sweep=1 clockwise).
-                  textPath follows L→R direction, letter tops face outward (up). Correct.
+                  textPath follows L→R, letter tops face outward (upward). Correct.
                 */}
                 <path id="sealTopArc" d="M 13 50 A 37 37 0 0 1 87 50" />
                 {/*
-                  BOTTOM arc: right→left (sweep=0 counterclockwise from right to left).
-                  Going R→L on the bottom: SVG flips glyph direction so text reads L→R correctly,
-                  letter tops face inward (toward center = upward). Sits cleanly in orange ring.
-                  NO side="right" needed — path direction handles it.
+                  BOTTOM arc: clockwise from left-bottom to right-bottom (sweep=1).
+                  Using side="right" flips glyphs so they face inward (upward at bottom).
+                  Arc sits at radius ~38 from center (50,50), y-level ~88 = bottom of orange ring.
+                  Start: M 17 80 (left side, ~radius 38 below center)
+                  End:   83 80  (right side, symmetric)
+                  This draws a low arc hugging the bottom orange ring.
                 */}
-                <path id="sealBotArc" d="M 88 62 A 43 43 0 0 0 12 62" />
+                <path id="sealBotArc" d="M 17 80 A 38 38 0 0 1 83 80" />
               </defs>
               <circle cx="50" cy="50" r="49" fill="#E65C00" stroke="#FFD700" strokeWidth="1.5" />
               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" strokeDasharray="2.5,2" />
@@ -483,70 +482,42 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 <textPath xlinkHref="#sealTopArc" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
               </text>
               <text fontFamily="Georgia,serif" fontWeight="600" fontSize="7" fill="#ffffff" letterSpacing="0.3">
-                <textPath xlinkHref="#sealBotArc" startOffset="50%" textAnchor="middle">JAMMU &amp; KASHMIR</textPath>
+                <textPath xlinkHref="#sealBotArc" startOffset="50%" textAnchor="middle" side="right">JAMMU &amp; KASHMIR</textPath>
               </text>
-              <text x="10" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
-              <text x="90" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
+              <text x="10" y="53" fontFamily="Georgia,serif" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
+              <text x="90" y="53" fontFamily="Georgia,serif" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
             </svg>
-            <div style={{
-              position: 'absolute',
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '63%', height: '63%',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              zIndex: 2,
-            }}>
-              <img src={SEAL_LOGO_IMG} alt="BMA Logo"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
-                crossOrigin="anonymous"
-              />
-            </div>
+            <img
+              src={SEAL_LOGO_IMG}
+              alt="BMA Seal"
+              style={{
+                position: 'absolute',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: `${SEAL_SIZE * 0.63 * 2}px`,
+                height: `${SEAL_SIZE * 0.63 * 2}px`,
+                objectFit: 'contain',
+                borderRadius: '50%',
+                zIndex: 2,
+              }}
+            />
           </div>
 
-        </div>
-      </div>
-
-      {/* DISCLAIMER */}
-      <div style={{
-        maxWidth: `${CARD_W * scale}px`, width: '100%',
-        background: '#f8f9fa', border: '1px solid #dee2e6',
-        borderRadius: '8px', padding: '12px 16px', textAlign: 'center',
-      }}>
-        <p style={{
-          fontFamily: "'Georgia', serif", fontSize: '12px',
-          color: '#6c757d', lineHeight: 1.6, margin: 0, fontStyle: 'italic',
-        }}>
-          <strong style={{ fontStyle: 'normal', color: '#495057' }}>Note:</strong> This card is a digital representation for reference purposes only. It does not constitute a valid identity document and is not intended for printing or official use. Physical membership cards are issued exclusively and directly by Bhartiya Modi Army, Jammu &amp; Kashmir.
-        </p>
-      </div>
-
-      {/* BUTTONS */}
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {onClose && (
-          <button type="button" onClick={onClose}
+          {/* Download button */}
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
             style={{
-              padding: '11px 30px', borderRadius: '8px',
-              background: 'transparent', color: '#64748b',
-              fontSize: '14px', fontWeight: 600,
-              fontFamily: 'Georgia, serif', letterSpacing: '0.08em',
-              border: '1.5px solid #cbd5e1', cursor: 'pointer',
-            }}>
-            ✕ CLOSE
+              position: 'absolute', bottom: '10px', right: '10px',
+              zIndex: 20, background: 'rgba(26,58,107,0.85)',
+              color: '#fff', border: 'none', borderRadius: '4px',
+              padding: '4px 10px', fontSize: '11px', cursor: 'pointer',
+              fontFamily: "'Georgia', serif",
+            }}
+          >
+            {downloading ? 'Downloading…' : '⬇ Download'}
           </button>
-        )}
-        <button type="button" onClick={handleDownload} disabled={downloading}
-          style={{
-            padding: '11px 36px', borderRadius: '8px',
-            background: downloading ? '#92400e' : '#E65C00',
-            color: '#ffffff', fontSize: '14px', fontWeight: 700,
-            fontFamily: 'Georgia, serif', letterSpacing: '0.08em',
-            border: 'none', cursor: downloading ? 'not-allowed' : 'pointer',
-            transition: 'background 0.2s',
-            boxShadow: '0 2px 10px rgba(230,92,0,0.5)',
-          }}>
-          {downloading ? 'DOWNLOADING...' : '⬇ DOWNLOAD ID CARD'}
-        </button>
+        </div>
       </div>
     </div>
   );
