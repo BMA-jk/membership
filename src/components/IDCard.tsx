@@ -286,9 +286,9 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       ctx.font = `600 ${6.5 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
-      const botText  = 'JAMMU & KASHMI';
+      const botText  = 'RIMHSAK & UMMAJ';
       const botR     = r * 0.76;
-      const botSpan  = Math.PI * 0.72;
+      const botSpan  = Math.PI * 0.60;
       const botStart = Math.PI / 2 - botSpan / 2;
       const botStep  = botSpan / (botText.length - 1);
       for (let i = 0; i < botText.length; i++) {
