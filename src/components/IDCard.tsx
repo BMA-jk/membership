@@ -262,6 +262,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       }
 
       // --- TOP ARC TEXT: "BHARTIYA MODI ARMY" ---
+      // Sweep left→right along top. rotate(angle + PI/2) → letter tops face outward (upward). Correct.
       ctx.save();
       ctx.font = `bold ${7 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#FFD700';
@@ -282,8 +283,9 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       ctx.restore();
 
       // --- BOTTOM ARC TEXT: "JAMMU & KASHMIR" ---
-      // Sweep RIGHT → LEFT along the bottom (from PI/2+span/2 down to PI/2-span/2).
-      // rotate = angle + PI/2 → letter tops face outward (downward), text reads L→R correctly.
+      // Sweep left→right along the bottom arc (from PI/2-span/2 to PI/2+span/2).
+      // rotate(angle - PI/2) → letter tops face OUTWARD (downward away from center).
+      // This is the correct orientation for bottom seal text — letters read L→R, upright.
       ctx.save();
       ctx.font = `600 ${6.5 * (SEAL_SIZE / 100)}px Georgia, serif`;
       ctx.fillStyle = '#ffffff';
@@ -291,14 +293,13 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
       const botText  = 'JAMMU & KASHMIR';
       const botR     = r * 0.76;
       const botSpan  = Math.PI * 0.60;
-      // Start from right side of bottom arc, sweep to left (so text reads left→right when rendered)
-      const botStart = Math.PI / 2 + botSpan / 2;
-      const botStep  = -botSpan / (botText.length - 1);  // negative = sweeping right→left
+      const botStart = Math.PI / 2 - botSpan / 2;  // start from left side of bottom arc
+      const botStep  = botSpan / (botText.length - 1);  // sweep left→right
       for (let i = 0; i < botText.length; i++) {
         const angle = botStart + i * botStep;
         ctx.save();
         ctx.translate(cx + botR * Math.cos(angle), cy + botR * Math.sin(angle));
-        ctx.rotate(angle + Math.PI / 2);  // tops face outward → correct upright orientation
+        ctx.rotate(angle - Math.PI / 2);  // tops face outward (away from center) → correct upright
         ctx.fillText(botText[i], 0, 0);
         ctx.restore();
       }
@@ -463,15 +464,16 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
               <defs>
                 {/*
                   TOP arc: left→right along top half (sweep=1 clockwise).
-                  Text baseline on inside → letters read L→R correctly.
+                  textPath follows direction → letters read L→R, tops face outward (up). Correct.
                 */}
                 <path id="sealTopArc" d="M 13 50 A 37 37 0 0 1 87 50" />
                 {/*
-                  BOTTOM arc: right→left along bottom half (sweep=0 counterclockwise).
-                  Going R→L means the textPath direction is reversed, so text reads L→R
-                  with baseline on outside (bottom) — correct stamp orientation.
+                  BOTTOM arc: left→right along bottom half (sweep=1 clockwise).
+                  Going L→R on the bottom means text baseline is on OUTSIDE of arc.
+                  side="right" flips the text to sit on the outside, reading correctly
+                  with letter tops pointing outward (downward). Standard stamp seal look.
                 */}
-                <path id="sealBotArc" d="M 88 56 A 43 43 0 0 0 12 56" />
+                <path id="sealBotArc" d="M 12 56 A 43 43 0 0 0 88 56" />
               </defs>
               <circle cx="50" cy="50" r="49" fill="#E65C00" stroke="#FFD700" strokeWidth="1.5" />
               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" strokeDasharray="2.5,2" />
@@ -480,7 +482,7 @@ export const IDCard: React.FC<Props> = ({ member, onClose }) => {
                 <textPath xlinkHref="#sealTopArc" startOffset="50%" textAnchor="middle">BHARTIYA MODI ARMY</textPath>
               </text>
               <text fontFamily="Georgia,serif" fontWeight="600" fontSize="7" fill="#ffffff" letterSpacing="0.3">
-                <textPath xlinkHref="#sealBotArc" startOffset="50%" textAnchor="middle">JAMMU &amp; KASHMIR</textPath>
+                <textPath xlinkHref="#sealBotArc" startOffset="50%" textAnchor="middle" side="right">JAMMU &amp; KASHMIR</textPath>
               </text>
               <text x="10" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
               <text x="90" y="53" fontSize="8" fill="#FFD700" textAnchor="middle">★</text>
